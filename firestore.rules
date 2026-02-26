@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : 'client';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+
+    function isTrainer() {
+      return isAuthenticated() && (getUserRole() == 'trainer' || getUserRole() == 'admin');
+    }
+
+    function isClient() {
+      return isAuthenticated() && getUserRole() == 'client';
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    users/{uid} {
+      allow read, write: if isAuthenticated() && isOwner(uid);
+    }
+
+    clients/{clientId} {
+      allow read, write: if isTrainer() || (isClient() && resource.data.uid == request.auth.uid);
+      allow create: if isTrainer() || (isClient() && request.resource.data.uid == request.auth.uid && request.resource.id == request.auth.uid);
+    }
+
+    foodItems/{foodId} {
+      allow read: if isAuthenticated();
+      allow write: if isTrainer();
+    }
+
+    exercises/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if isTrainer();
+    }
+
+    supplementCatalog/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isTrainer();
+    }
+
+    mealPlanVersions/{versionId} {
+      allow read: if isAuthenticated();
+      allow write: if isTrainer();
+    }
+
+    workoutPlanVersions/{versionId} {
+      allow read: if isAuthenticated();
+      allow write: if isTrainer();
+    }
+
+    regimenVersions/{versionId} {
+      allow read: if isAuthenticated();
+      allow write: if isTrainer();
+    }
+
+    logsMeals/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    logsWorkouts/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    logsRegimen/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    workoutSessions/{sessionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    checkinTemplates/{templateId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    checkins/{checkinId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    feedback/{feedbackId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    messages/{threadId}/items/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    forums/{forumId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    tasks/{taskId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    notifications/{notificationId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    fcmTokens/{uid}/tokens/{tokenId} {
+      allow read, write: if isAuthenticated() && isOwner(uid);
+    }
+
+    allowedEmails/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
