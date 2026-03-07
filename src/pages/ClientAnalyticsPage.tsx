@@ -15,7 +15,6 @@ import {
   buildPredictionSeries,
   type TrainingGoal,
   buildWorkoutPlanFromLift,
-  getGoalPrescription,
   type DailyCalorieData,
 } from '@/lib/ai-utils'
 import {
@@ -29,7 +28,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts'
-import { Barbell, CaretDown, CaretRight, ChartLine } from '@phosphor-icons/react'
+import { Barbell, CaretDown, CaretRight, ChartLine, Question } from '@phosphor-icons/react'
 import { calcNutrientsFromFoods } from '@/lib/macro-utils'
 import { getDocsCacheFirst } from '@/lib/firestore-cache'
 
@@ -37,7 +36,7 @@ export function ClientAnalyticsPage() {
   const { clientId } = useParams<{ clientId: string }>()
   const { profile } = useAuth()
 
-  const { data: client } = useQuery({
+  const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ['client', clientId],
     queryFn: async () => {
       const snap = await getDoc(doc(db, 'clients', clientId!))
@@ -142,51 +141,46 @@ export function ClientAnalyticsPage() {
   })
 
   const isTrainer = profile?.role === 'trainer' || profile?.role === 'admin'
-  const isOwnProfile = clientId === profile?.uid
+  const clientUid = (client as { uid?: string } | null)?.uid
+  const isOwnProfile = clientId === profile?.uid || clientUid === profile?.uid
   const [goal, setGoal] = useState<TrainingGoal>('hypertrophy')
   const [comfortWeight, setComfortWeight] = useState('')
-  const [comfortSets, setComfortSets] = useState('3')
   const [comfortReps, setComfortReps] = useState('10')
   const [exerciseName, setExerciseName] = useState('Main lift (e.g. Bench, Squat)')
   const [planResult, setPlanResult] = useState<ReturnType<typeof buildWorkoutPlanFromLift> | null>(null)
   const [planExpanded, setPlanExpanded] = useState(true)
-  if (!isTrainer && !isOwnProfile) return <p className="p-4">Access denied.</p>
-  if (!client) {
-    return (
-      <div className="flex justify-center py-12">
-        <Spinner className="h-10 w-10 text-primary" />
-      </div>
-    )
-  }
+  const [showHowTo, setShowHowTo] = useState(false)
 
-  const displayName = (client as { displayName?: string; email?: string }).displayName ?? (client as { email?: string }).email ?? `Client ${clientId}`
+  const checkinChartData = useMemo(
+    () =>
+      [...(checkins as { date?: string; answers?: Record<string, unknown> }[])]
+        .reverse()
+        .map((c) => {
+          const scale = Object.values(c.answers ?? {}).find(
+            (v) => typeof v === 'string' && /^\d+$/.test(v)
+          ) as string | undefined
+          return { date: c.date ?? '', score: scale ? parseInt(scale, 10) : null }
+        })
+        .filter((d): d is { date: string; score: number } => d.score != null),
+    [checkins]
+  )
 
-  const checkinChartData = [...(checkins as { date?: string; answers?: Record<string, unknown> }[])]
-    .reverse()
-    .map((c) => {
-      const scale = Object.values(c.answers ?? {}).find(
-        (v) => typeof v === 'string' && /^\d+$/.test(v)
-      ) as string | undefined
-      return {
-        date: c.date ?? '',
-        score: scale ? parseInt(scale, 10) : null,
-      }
-    })
-    .filter((d) => d.score != null)
-
-  const weightHistory = (checkins as { date?: string; answers?: Record<string, unknown> }[])
-    .map((c) => {
-      const ans = c.answers ?? {}
-      for (const [k, v] of Object.entries(ans)) {
-        if (!/weight/i.test(k)) continue
-        const w = typeof v === 'string' ? parseFloat(v) : typeof v === 'number' ? v : null
-        if (w != null && !isNaN(w) && w >= 20 && w <= 300) return { date: c.date ?? '', weight: w }
-      }
-      return null
-    })
-    .filter((d): d is { date: string; weight: number } => d != null)
-    .sort((a, b) => a.date.localeCompare(b.date))
-  const weightForecast = weightHistory.length >= 2 ? forecastWeight(weightHistory, 7) : null
+  const weightHistory = useMemo(
+    () =>
+      (checkins as { date?: string; answers?: Record<string, unknown> }[])
+        .map((c) => {
+          const ans = c.answers ?? {}
+          for (const [k, v] of Object.entries(ans)) {
+            if (!/weight/i.test(k)) continue
+            const w = typeof v === 'string' ? parseFloat(v) : typeof v === 'number' ? v : null
+            if (w != null && !isNaN(w) && w >= 20 && w <= 300) return { date: c.date ?? '', weight: w }
+          }
+          return null
+        })
+        .filter((d): d is { date: string; weight: number } => d != null)
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [checkins]
+  )
 
   const bfHistory = useMemo(() => {
     const out: { date: string; bf: number }[] = []
@@ -260,48 +254,69 @@ export function ClientAnalyticsPage() {
     [predictionSeries]
   )
 
+  /** Progress over time: date left → right, value up (weight / BF). Blue line, orange dots. */
+  const progressOverTimeData = useMemo(
+    () =>
+      weightHistory.map((w) => ({ ...w, dateShort: w.date.slice(5) })),
+    [weightHistory]
+  )
+
+  if (!isTrainer && !isOwnProfile) return <p className="p-4">Access denied.</p>
+  if (clientLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner className="h-10 w-10 text-primary" />
+      </div>
+    )
+  }
+  if (!client) {
+    return (
+      <div className="p-4 md:p-6">
+        <p className="text-muted-foreground">Client not found. They may need to complete onboarding.</p>
+      </div>
+    )
+  }
+
+  const displayName = (client as { displayName?: string; email?: string }).displayName ?? (client as { email?: string }).email ?? `Client ${clientId}`
+  const weightForecast = weightHistory.length >= 2 ? forecastWeight(weightHistory, 7) : null
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <h1 className="text-2xl font-bold">Analytics: {displayName}</h1>
 
       {isOwnProfile && (
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <button
+            type="button"
+            onClick={() => setShowHowTo((x) => !x)}
+            className="flex items-center gap-2 text-left w-full font-medium text-foreground"
+          >
+            <Question className="h-5 w-5 text-primary" weight="duotone" />
+            How do I use the AI predictor and graphs?
+          </button>
+          {showHowTo && (
+            <div className="mt-4 pt-4 border-t border-border space-y-3 text-sm text-muted-foreground">
+              <p><strong className="text-foreground">Check-in trend</strong> — Your check-in scores over time. Do daily or weekly check-ins to see the line.</p>
+              <p><strong className="text-foreground">AI predictions: weight &amp; body fat %</strong> — Log <em>weight</em> (and optionally <em>body fat %</em>) in your check-ins, and log meals so we know your calories. The graph shows actual vs predicted weight and body fat; the cards below show &quot;Weight in 7 days&quot; and &quot;BF % in 7 days&quot;.</p>
+              <p><strong className="text-foreground">Lift calculator</strong> — Enter the weight and reps you did. We estimate your 1-rep max and suggest a working weight and sets×reps for your goal (endurance, strength, or hypertrophy).</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isOwnProfile && (
         <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
           <h2 className="font-semibold flex items-center gap-2">
             <Barbell className="h-5 w-5 text-primary" weight="duotone" />
-            Goal-based lift calculator & workout plan
+            Lift calculator
           </h2>
           <p className="text-sm text-muted-foreground">
-            Choose your goal, enter what you feel comfortable lifting, and we’ll calculate what to do and build a plan.
+            Enter the weight and reps you did. We’ll estimate your 1-rep max and suggest what to lift for your goal.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-sm font-medium">What do you want to achieve?</Label>
-              <select
-                value={goal}
-                onChange={(e) => setGoal(e.target.value as TrainingGoal)}
-                className="mt-1.5 w-full h-10 rounded-xl border border-input bg-background px-4 text-sm"
-              >
-                <option value="endurance">Endurance</option>
-                <option value="strength">Strength</option>
-                <option value="hypertrophy">Muscle size (hypertrophy)</option>
-              </select>
-              <p className="text-xs text-muted-foreground mt-1">{getGoalPrescription(goal).description}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Exercise name</Label>
-              <Input
-                placeholder="e.g. Bench Press, Squat"
-                value={exerciseName}
-                onChange={(e) => setExerciseName(e.target.value)}
-                className="mt-1.5 rounded-xl"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <Label className="text-sm font-medium">Weight you’re comfortable with (kg)</Label>
+              <Label className="text-sm font-medium">Weight lifted (kg)</Label>
               <Input
                 type="number"
                 min="1"
@@ -313,24 +328,38 @@ export function ClientAnalyticsPage() {
               />
             </div>
             <div>
-              <Label className="text-sm font-medium">Sets</Label>
-              <Input
-                type="number"
-                min="1"
-                max="10"
-                value={comfortSets}
-                onChange={(e) => setComfortSets(e.target.value)}
-                className="mt-1.5 rounded-xl"
-              />
-            </div>
-            <div>
               <Label className="text-sm font-medium">Reps (at that weight)</Label>
               <Input
                 type="number"
                 min="1"
                 max="30"
+                placeholder="e.g. 10"
                 value={comfortReps}
                 onChange={(e) => setComfortReps(e.target.value)}
+                className="mt-1.5 rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-sm font-medium">Goal</Label>
+              <select
+                value={goal}
+                onChange={(e) => setGoal(e.target.value as TrainingGoal)}
+                className="mt-1.5 w-full h-10 rounded-xl border border-input bg-background px-4 text-sm"
+              >
+                <option value="endurance">Endurance</option>
+                <option value="strength">Strength</option>
+                <option value="hypertrophy">Muscle size (hypertrophy)</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Exercise (optional)</Label>
+              <Input
+                placeholder="e.g. Bench Press, Squat"
+                value={exerciseName}
+                onChange={(e) => setExerciseName(e.target.value)}
                 className="mt-1.5 rounded-xl"
               />
             </div>
@@ -339,32 +368,33 @@ export function ClientAnalyticsPage() {
           <Button
             onClick={() => {
               const w = parseFloat(comfortWeight)
-              const sets = parseInt(comfortSets, 10) || 3
               const reps = parseInt(comfortReps, 10) || 10
               if (w > 0 && reps > 0) {
-                setPlanResult(buildWorkoutPlanFromLift(goal, w, sets, reps, exerciseName || 'Main lift'))
+                setPlanResult(buildWorkoutPlanFromLift(goal, w, 3, reps, exerciseName || 'Lift'))
                 setPlanExpanded(true)
               }
             }}
             disabled={!comfortWeight || !comfortReps || parseFloat(comfortWeight) <= 0 || parseInt(comfortReps, 10) <= 0}
             className="rounded-xl"
           >
-            Calculate & build workout plan
+            Calculate
           </Button>
 
           {planResult && (
             <div className="rounded-xl border border-border bg-muted/30 overflow-hidden">
+              <p className="p-4 text-sm border-b border-border">
+                <strong>Estimated 1RM: {planResult.oneRM} kg.</strong> For {goal}: use <strong>{planResult.workingWeightKg} kg</strong> for {planResult.prescription.sets}×{planResult.prescription.repMin}–{planResult.prescription.repMax} reps.
+              </p>
               <button
                 type="button"
                 onClick={() => setPlanExpanded((x) => !x)}
-                className="w-full flex items-center justify-between p-4 text-left font-medium"
+                className="w-full flex items-center justify-between p-4 text-left font-medium text-sm"
               >
-                <span>Your plan: est. 1RM {planResult.oneRM} kg → {planResult.prescription.sets}×{planResult.prescription.repMin}–{planResult.prescription.repMax} @ {planResult.workingWeightKg} kg</span>
+                <span>{planExpanded ? 'Hide' : 'Show'} full plan</span>
                 {planExpanded ? <CaretDown className="h-5 w-5 shrink-0" /> : <CaretRight className="h-5 w-5 shrink-0" />}
               </button>
               {planExpanded && (
                 <div className="px-4 pb-4 space-y-3">
-                  <p className="text-sm text-muted-foreground">{planResult.prescription.description} Rest: {planResult.prescription.restSeconds}s between sets.</p>
                   <ul className="space-y-2">
                     {planResult.exercises.map((ex, i) => (
                       <li key={i} className="flex flex-wrap items-baseline gap-2 text-sm p-3 rounded-lg bg-background border border-border">
@@ -372,7 +402,6 @@ export function ClientAnalyticsPage() {
                         <span>{ex.sets} × {ex.reps}</span>
                         <span className="text-primary font-semibold">{ex.weightKg} kg</span>
                         <span className="text-muted-foreground">rest {ex.restSeconds}s</span>
-                        {ex.notes && <span className="text-muted-foreground text-xs">— {ex.notes}</span>}
                       </li>
                     ))}
                   </ul>
@@ -384,18 +413,55 @@ export function ClientAnalyticsPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="font-semibold mb-4 flex items-center gap-2">
+          <ChartLine className="h-5 w-5 text-primary" weight="duotone" />
+          Progress over time
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Weight over time (earliest → latest). Log weight in check-ins to see the line.
+        </p>
+        {progressOverTimeData.length >= 2 ? (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={progressOverTimeData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="dateShort" fontSize={11} stroke="hsl(var(--muted-foreground))" />
+                <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" domain={['auto', 'auto']} />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)' }}
+                  formatter={(v: number | undefined) => [v != null ? `${v} kg` : '—', 'Weight']}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="weight"
+                  name="Weight (kg)"
+                  stroke="hsl(217 91% 60%)"
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(25 95% 53%)', strokeWidth: 0, r: 4 }}
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Log weight in at least 2 check-ins to see progress over time.</p>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5">
         <h2 className="font-semibold mb-4">Check-in trend</h2>
         {checkinChartData.length === 0 ? (
           <p className="text-muted-foreground">No check-in data yet.</p>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={checkinChartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot />
+              <LineChart data={checkinChartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" fontSize={11} stroke="hsl(var(--muted-foreground))" />
+                <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" />
+                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)' }} />
+                <Line type="monotone" dataKey="score" stroke="hsl(217 91% 60%)" strokeWidth={2} dot={{ fill: 'hsl(25 95% 53%)', strokeWidth: 0, r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

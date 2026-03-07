@@ -68,15 +68,15 @@ export function FoodDetailDialog({
         clientId: clientIdForLog,
         foodId: food.id,
         foodName: getStr('name', 'Food'),
-        servings: qty,
+        servings: effectiveQty,
         date: format(new Date(), 'yyyy-MM-dd'),
-        calories: getVal('calories') * qty,
-        protein: getVal('protein') * qty,
-        carbs: getVal('carbs') * qty,
-        fat: getVal('fat') * qty,
-        fiber: getVal('fiber') * qty,
-        sugar: getVal('sugar') * qty,
-        sodium: getVal('sodium') * qty,
+        calories: getVal('calories') * effectiveQty,
+        protein: getVal('protein') * effectiveQty,
+        carbs: getVal('carbs') * effectiveQty,
+        fat: getVal('fat') * effectiveQty,
+        fiber: getVal('fiber') * effectiveQty,
+        sugar: getVal('sugar') * effectiveQty,
+        sodium: getVal('sodium') * effectiveQty,
         loggedAt: serverTimestamp(),
       })
     },
@@ -110,11 +110,27 @@ export function FoodDetailDialog({
   const servingSize = getStr('servingSize', '100g')
   const servingUnit = getStr('servingUnit', '')
 
+  /** Parse grams per serving from servingSize (e.g. "100g" -> 100, "50 g" -> 50) */
+  const gramsPerServing = (() => {
+    const match = servingSize.match(/(\d+(?:\.\d+)?)\s*g/i)
+    return match ? parseFloat(match[1]) : 100
+  })()
+
+  const [entryMode, setEntryMode] = useState<'servings' | 'grams'>('servings')
+  const [gramsInput, setGramsInput] = useState('')
+
+  const qtyFromGrams = gramsInput.trim() ? Math.max(0.5, parseFloat(gramsInput) / gramsPerServing) : qty
+  const effectiveQty = entryMode === 'grams' ? qtyFromGrams : qty
+
+  const syncGramsFromQty = (s: number) => {
+    setGramsInput(String(Math.round(s * gramsPerServing)))
+  }
+
   const nutrients = ALL_NUTRIENT_KEYS.filter((key) => {
     const v = getVal(key)
     return v > 0 || ['calories', 'protein', 'carbs', 'fat'].includes(key)
   })
-  const scaled = (key: string) => getVal(key) * qty
+  const scaled = (key: string) => getVal(key) * effectiveQty
 
   const displayNutrients = nutrients.length > 0 ? nutrients : (['calories', 'protein', 'carbs', 'fat'] as const)
 
@@ -154,37 +170,74 @@ export function FoodDetailDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium block mb-1">Quantity (servings)</label>
-            <div className="flex items-center gap-2">
+            <label className="text-sm font-medium block mb-1">Quantity</label>
+            <div className="flex gap-2 mb-2">
               <Button
                 type="button"
-                variant="outline"
+                variant={entryMode === 'servings' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setQty((q) => Math.max(0.5, q - 0.5))}
+                onClick={() => { setEntryMode('servings'); setGramsInput('') }}
               >
-                −
+                Servings
               </Button>
-              <Input
-                type="number"
-                min="0.5"
-                step="0.5"
-                value={qty}
-                onChange={(e) => setQty(Math.max(0.5, parseFloat(e.target.value) || 1))}
-                className="w-20 text-center"
-              />
               <Button
                 type="button"
-                variant="outline"
+                variant={entryMode === 'grams' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setQty((q) => q + 0.5)}
+                onClick={() => { setEntryMode('grams'); syncGramsFromQty(qty) }}
               >
-                +
+                Grams
               </Button>
             </div>
+            {entryMode === 'servings' ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQty((q) => Math.max(0.5, q - 0.5))}
+                >
+                  −
+                </Button>
+                <Input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  value={qty}
+                  onChange={(e) => setQty(Math.max(0.5, parseFloat(e.target.value) || 1))}
+                  className="w-20 text-center"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQty((q) => q + 0.5)}
+                >
+                  +
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder={`e.g. ${gramsPerServing}`}
+                  value={gramsInput}
+                  onChange={(e) => {
+                    setGramsInput(e.target.value)
+                    const g = parseFloat(e.target.value)
+                    if (!Number.isNaN(g) && g > 0) setQty(Math.max(0.5, g / gramsPerServing))
+                  }}
+                  className="w-24"
+                />
+                <span className="text-muted-foreground text-sm">g</span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-border bg-muted/50 p-4">
-            <h4 className="font-semibold mb-3 text-foreground">Full nutrient breakdown (×{qty} {qty === 1 ? 'serving' : 'servings'})</h4>
+            <h4 className="font-semibold mb-3 text-foreground">Full nutrient breakdown (×{effectiveQty.toFixed(effectiveQty % 1 ? 1 : 0)} {effectiveQty === 1 ? 'serving' : 'servings'})</h4>
             <div className="grid grid-cols-2 gap-3">
               {displayNutrients.map((key) => (
                 <div key={key} className="flex justify-between">
@@ -238,7 +291,7 @@ export function FoodDetailDialog({
               disabled={logMutation.isPending}
               className="w-full"
             >
-              {logMutation.isPending ? 'Adding…' : `Add to today's meals (×${qty})`}
+              {logMutation.isPending ? 'Adding…' : `Add to today's meals (×${effectiveQty.toFixed(effectiveQty % 1 ? 1 : 0)} ${effectiveQty === 1 ? 'serving' : 'servings'})`}
             </Button>
           )}
         </div>
