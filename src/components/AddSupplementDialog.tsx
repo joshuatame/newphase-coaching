@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus } from 'lucide-react'
+import { Plus } from '@phosphor-icons/react'
 
 const CATEGORIES = ['supplement', 'hormone', 'peptide', 'medication']
 
@@ -59,7 +59,7 @@ export function AddSupplementDialog() {
           Add item
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Add supplement / hormone / peptide</DialogTitle>
         </DialogHeader>

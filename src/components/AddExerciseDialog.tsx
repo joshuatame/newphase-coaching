@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus } from 'lucide-react'
+import { Plus } from '@phosphor-icons/react'
 
 export function AddExerciseDialog() {
   const [open, setOpen] = useState(false)
@@ -59,7 +59,7 @@ export function AddExerciseDialog() {
           Add exercise
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Add exercise</DialogTitle>
         </DialogHeader>

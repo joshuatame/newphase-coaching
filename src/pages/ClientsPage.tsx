@@ -3,8 +3,9 @@ import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { PageLoader } from '@/components/PageLoader'
 import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Plus } from '@phosphor-icons/react'
 
 export function ClientsPage() {
   const { profile } = useAuth()
@@ -22,6 +23,8 @@ export function ClientsPage() {
     enabled: !!profile,
   })
 
+  if (!profile || isLoading) return <PageLoader />
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
@@ -35,23 +38,26 @@ export function ClientsPage() {
           </Button>
         )}
       </div>
-      {isLoading ? (
-        <p className="text-muted-foreground">Loading...</p>
-      ) : (
-        <div className="grid gap-4">
-          {clients.map((c: { id: string; goals?: string }) => (
+      <div className="grid gap-4">
+        {clients.map((c: { id: string; goals?: string }) => {
+          const displayName = (c as { displayName?: string }).displayName
+          const email = (c as { email?: string }).email
+          const name = displayName ?? email ?? `Client ${c.id.slice(0, 8)}`
+          const sub = displayName && email ? email : null
+          return (
             <Link key={c.id} to={`/clients/${c.id}`}>
-              <div className="p-4 rounded-lg border border-border bg-card hover:bg-accent/10 transition-colors">
-                <p className="font-medium">Client {c.id}</p>
-                {c.goals && <p className="text-sm text-muted-foreground">{c.goals}</p>}
+              <div className="p-5 rounded-2xl border border-border bg-card hover:bg-accent/10 transition-colors">
+                <p className="font-medium">{name}</p>
+                {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
+                {c.goals && <p className="text-sm text-muted-foreground mt-0.5">{c.goals}</p>}
               </div>
             </Link>
-          ))}
-          {clients.length === 0 && (
-            <p className="text-muted-foreground">No clients yet.</p>
-          )}
-        </div>
-      )}
+          )
+        })}
+        {clients.length === 0 && (
+          <p className="text-muted-foreground">No clients yet.</p>
+        )}
+      </div>
     </div>
   )
 }

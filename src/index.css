@@ -6,29 +6,93 @@
   --font-display: 'Anton', system-ui, sans-serif;
 }
 
+/* Light theme - clean, minimal */
+html.light,
+[data-theme="light"] {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 217 91% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 217 91% 60%;
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --sidebar: 0 0% 96%;
+}
+
+/* Dark theme - Adminto-inspired: charcoal, refined accents */
+html.dark,
+[data-theme="dark"] {
+  --background: 220 20% 14%;
+  --foreground: 0 0% 95%;
+  --card: 220 18% 18%;
+  --card-foreground: 0 0% 95%;
+  --popover: 220 18% 18%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 142 71% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 16% 22%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 220 16% 22%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 142 71% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 14% 24%;
+  --input: 220 14% 24%;
+  --ring: 142 71% 45%;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --sidebar: 220 24% 9%;
+}
+
+/* Default - Adminto dark */
 :root {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 217 91% 60%;
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-display: 'Anton', system-ui, sans-serif;
-  }
+  --background: 220 20% 14%;
+  --foreground: 0 0% 95%;
+  --card: 220 18% 18%;
+  --card-foreground: 0 0% 95%;
+  --popover: 220 18% 18%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 142 71% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 16% 22%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 220 16% 22%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 142 71% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 14% 24%;
+  --input: 220 14% 24%;
+  --ring: 142 71% 45%;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --sidebar: 220 24% 9%;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Anton', system-ui, sans-serif;
+}
 
 * {
   border-color: hsl(var(--border));
@@ -48,6 +112,30 @@ body {
   overflow-x: hidden;
 }
 
+/* Adminto-style dark background */
+html.dark body,
+[data-theme="dark"] body,
+body {
+  background: linear-gradient(
+    180deg,
+    hsl(220 20% 15%) 0%,
+    hsl(220 22% 12%) 50%,
+    hsl(220 24% 10%) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Light mode - subtle warm grey gradient (overrides dark body gradient) */
+html.light body,
+[data-theme="light"] body {
+  background: linear-gradient(
+    180deg,
+    hsl(0 0% 98%) 0%,
+    hsl(220 15% 96%) 100%
+  );
+  background-attachment: fixed;
+}
+
 @media (max-width: 768px) {
   body {
     padding-bottom: env(safe-area-inset-bottom, 0);
@@ -56,4 +144,69 @@ body {
 
 .font-display {
   font-family: var(--font-display);
+}
+
+/* Rounded utilities */
+.rounded-card {
+  border-radius: var(--radius-xl);
+}
+.rounded-panel {
+  border-radius: var(--radius-2xl);
+}
+
+/* Sidebar Adminto-style */
+.bg-sidebar {
+  background-color: hsl(var(--sidebar));
+}
+
+/* Adminto-style table refinement */
+.table-adminto {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.table-adminto th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+}
+.table-adminto td, .table-adminto th {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Light mode: ensure modals/dialogs have white background for readable text */
+html.light [data-dialog-content],
+[data-theme="light"] [data-dialog-content] {
+  background-color: #ffffff !important;
+  color: #171717 !important;
+}
+html.light [data-dialog-content] [data-slot="dialog-description"],
+[data-theme="light"] [data-dialog-content] [data-slot="dialog-description"],
+html.light [data-dialog-content] .text-muted-foreground,
+[data-theme="light"] [data-dialog-content] .text-muted-foreground {
+  color: #737373 !important;
+}
+
+/* Form controls: ensure text is always readable across themes */
+input,
+textarea,
+select,
+label {
+  color: hsl(var(--foreground));
+}
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+select option {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+/* Light mode: select dropdown options need explicit dark text on white */
+html.light select option,
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #171717;
 }

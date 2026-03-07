@@ -9,11 +9,14 @@ lerna-debug.log*
 
 node_modules
 dist
+dev-dist
 dist-ssr
+.firebase
 *.local
 .env
 .env.local
 .env.*.local
+functions/.env
 service-account*.json
 *-adminsdk-*.json
 

@@ -4,6 +4,7 @@ export interface UserProfile {
   uid: string
   email: string
   displayName?: string
+  photoURL?: string
   role: Role
   createdAt: string
   updatedAt: string

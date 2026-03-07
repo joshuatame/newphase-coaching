@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import {
   getFirestore,
+  enableIndexedDbPersistence,
   connectFirestoreEmulator,
   type Firestore,
 } from 'firebase/firestore'
@@ -33,6 +34,16 @@ const app: FirebaseApp = initializeApp(firebaseConfig)
 export const auth: Auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()
 export const db: Firestore = getFirestore(app)
+
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Firestore persistence skipped: multiple tabs open')
+    } else if (err.code === 'unimplemented') {
+      console.warn('Firestore persistence skipped: browser unsupported')
+    }
+  })
+}
 export const storage: FirebaseStorage = getStorage(app)
 export const functions: Functions = getFunctions(app)
 
@@ -50,11 +61,20 @@ export { messaging }
 export async function getFCMToken(): Promise<string | null> {
   if (!messaging) return null
   try {
-    const token = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
+    if (!vapidKey) return null
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Push notifications require a browser that supports service workers')
+      return null
+    }
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+    await registration.update()
+    return await getToken(messaging, {
+      vapidKey,
+      serviceWorkerRegistration: registration,
     })
-    return token
-  } catch {
+  } catch (e) {
+    console.warn('FCM token registration failed:', e instanceof Error ? e.message : e)
     return null
   }
 }

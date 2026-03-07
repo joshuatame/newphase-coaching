@@ -22,6 +22,7 @@ import { PageLoader } from '@/components/PageLoader'
 import { Button } from '@/components/ui/button'
 import { Check, Circle, Info, Plus, Trash } from '@phosphor-icons/react'
 import { FoodDetailDialog, type FoodDetail } from '@/components/FoodDetailDialog'
+import { useMyClientId } from '@/hooks/useMyClientId'
 
 type MealFood = { foodId: string; servings: number; name?: string }
 type Meal = { id: string; name: string; foods: MealFood[]; notes?: string }
@@ -36,6 +37,7 @@ function getMyClientId(clients: { id: string; uid?: string }[], profileUid: stri
 
 export function ClientMealTrackingPage() {
   const { profile } = useAuth()
+  const myClientIdFromHook = useMyClientId()
   const qc = useQueryClient()
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [selectedFood, setSelectedFood] = useState<FoodDetail | null>(null)
@@ -52,8 +54,8 @@ export function ClientMealTrackingPage() {
   })
 
   const myClientId = useMemo(
-    () => (profile?.uid ? getMyClientId(clients, profile.uid) : null),
-    [clients, profile?.uid]
+    () => (profile?.uid ? getMyClientId(clients, profile.uid) : null) ?? myClientIdFromHook,
+    [clients, profile?.uid, myClientIdFromHook]
   )
 
   const { data: plans = [], isLoading: plansLoading } = useQuery({
@@ -228,10 +230,10 @@ export function ClientMealTrackingPage() {
   const NUTRIENT_KEYS = ['calories', 'protein', 'carbs', 'fat'] as const
 
   if (!profile || clientsLoading || plansLoading || foodsLoading) return <PageLoader />
-  if (profile?.role !== 'client') {
+  if (profile?.role !== 'client' && !myClientIdFromHook) {
     return (
       <div className="p-4 md:p-6">
-        <p className="text-muted-foreground">Meal tracking is for clients only.</p>
+        <p className="text-muted-foreground">Meal tracking is for clients. Create a client record linked to your account to self-coach.</p>
       </div>
     )
   }

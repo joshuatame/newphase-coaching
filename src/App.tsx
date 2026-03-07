@@ -1,17 +1,23 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { Toaster } from './components/ui/toaster'
+import { Spinner } from './components/ui/spinner'
+import { SamsungPWANotice } from './components/SamsungPWANotice'
 import { LoginPage } from './pages/LoginPage'
 import { ClientOnboardingPage } from './pages/ClientOnboardingPage'
 import { TrainerOnboardingPage } from './pages/TrainerOnboardingPage'
-import { DashboardLayout } from './components/layout/DashboardLayout'
+
+const DashboardLayout = lazy(() =>
+  import('./components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout }))
+)
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, needsOnboarding } = useAuth()
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <Spinner className="h-10 w-10 text-primary" />
       </div>
     )
   }
@@ -34,7 +40,7 @@ function OnboardingRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <Spinner className="h-10 w-10 text-primary" />
       </div>
     )
   }
@@ -45,6 +51,7 @@ function OnboardingRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <>
+      <SamsungPWANotice />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/onboarding/client" element={<OnboardingRoute><ClientOnboardingPage /></OnboardingRoute>} />
@@ -53,7 +60,13 @@ function App() {
           path="/*"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center bg-background">
+                  <Spinner className="h-10 w-10 text-primary" />
+                </div>
+              }>
+                <DashboardLayout />
+              </Suspense>
             </ProtectedRoute>
           }
         />

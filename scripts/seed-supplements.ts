@@ -5,7 +5,7 @@
  */
 import 'dotenv/config'
 import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore'
+import { getFirestore, collection, doc, setDoc, getDocs } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -63,11 +63,18 @@ const ITEMS: Supplement[] = [
 
 async function seed() {
   const col = collection(db, 'supplementCatalog')
+  const existing = await getDocs(col)
+  const existingKeys = new Set(existing.docs.map((d) => `${(d.data().name as string)?.toLowerCase().trim()}-${d.data().form}`).filter(Boolean))
+  let added = 0
   for (let i = 0; i < ITEMS.length; i++) {
+    const key = `${ITEMS[i].name.toLowerCase().trim()}-${ITEMS[i].form ?? ''}`
+    if (existingKeys.has(key)) continue
+    existingKeys.add(key)
     const id = `sup-${Date.now()}-${i}`
     await setDoc(doc(col, id), ITEMS[i])
+    added++
   }
-  console.log(`Seeded ${ITEMS.length} supplements/hormones/peptides`)
+  console.log(`Seeded ${added} new supplements (${ITEMS.length - added} skipped as duplicates)`)
 }
 
 seed().catch(console.error)

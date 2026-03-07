@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Camera } from 'lucide-react'
+import { Camera } from '@phosphor-icons/react'
 
 const GOALS = [
   { value: 'muscle', label: 'Build Muscle' },
@@ -17,6 +17,17 @@ const GOALS = [
   { value: 'strength', label: 'Strength' },
   { value: 'endurance', label: 'Endurance' },
   { value: 'general', label: 'General Fitness' },
+]
+
+const INITIAL_HABITS = [
+  'Plan my day',
+  'Stretch for 10 mins',
+  'Drink 2.5L of water',
+  'Study for 30 mins',
+  'Strength training',
+  'Cardio training',
+  'Practice mindfulness',
+  'Sleep by 11pm',
 ]
 
 const MEAL_TIMES = [
@@ -49,12 +60,22 @@ export function ClientOnboardingPage() {
     dietaryConstraints: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     units: 'metric' as 'metric' | 'imperial',
+    initialHabits: [] as string[],
   })
 
   const handleGoalToggle = (value: string) => {
     setForm((f) => ({
       ...f,
       goals: f.goals.includes(value) ? f.goals.filter((g) => g !== value) : [...f.goals, value],
+    }))
+  }
+
+  const handleHabitToggle = (value: string) => {
+    setForm((f) => ({
+      ...f,
+      initialHabits: f.initialHabits.includes(value)
+        ? f.initialHabits.filter((h) => h !== value)
+        : [...f.initialHabits, value],
     }))
   }
 
@@ -96,6 +117,7 @@ export function ClientOnboardingPage() {
         dietaryConstraints: form.dietaryConstraints || null,
         timezone: form.timezone,
         units: form.units,
+        initialHabits: form.initialHabits,
         onboardingComplete: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -214,6 +236,29 @@ export function ClientOnboardingPage() {
                 />
                 Imperial (lb, in)
               </label>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="font-semibold text-lg">Habits to track</h2>
+            <p className="text-sm text-muted-foreground">
+              Select habits you want to focus on in the Productivity tracker.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {INITIAL_HABITS.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => handleHabitToggle(h)}
+                  className={`px-4 py-2 rounded-md border text-sm transition-colors ${
+                    form.initialHabits.includes(h)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background border-border hover:border-primary/50'
+                  }`}
+                >
+                  {h}
+                </button>
+              ))}
             </div>
           </div>
 

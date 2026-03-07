@@ -17,7 +17,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 const SERVICE_ACCOUNT_PATH = join(process.cwd(), 'service-account.json')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@newphase.coaching'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'Admin123!@#'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'NP-Coaching12!'
 
 async function main() {
   let serviceAccount: ServiceAccount

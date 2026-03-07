@@ -28,97 +28,190 @@ service cloud.firestore {
       return request.auth.uid == uid;
     }
 
-    users/{uid} {
+    match /users/{uid} {
       allow read, write: if isAuthenticated() && isOwner(uid);
     }
 
-    clients/{clientId} {
+    match /clients/{clientId} {
       allow read, write: if isTrainer() || (isClient() && resource.data.uid == request.auth.uid);
       allow create: if isTrainer() || (isClient() && request.resource.data.uid == request.auth.uid && request.resource.id == request.auth.uid);
     }
 
-    foodItems/{foodId} {
+    match /foodItems/{foodId} {
       allow read: if isAuthenticated();
       allow write: if isTrainer();
     }
 
-    exercises/{exerciseId} {
+    match /exercises/{exerciseId} {
       allow read: if isAuthenticated();
       allow write: if isTrainer();
     }
 
-    supplementCatalog/{itemId} {
+    match /supplementCatalog/{itemId} {
       allow read: if isAuthenticated();
       allow write: if isTrainer();
     }
 
-    mealPlanVersions/{versionId} {
+    match /mealPlanVersions/{versionId} {
       allow read: if isAuthenticated();
       allow write: if isTrainer();
     }
 
-    workoutPlanVersions/{versionId} {
+    match /workoutPlanVersions/{versionId} {
       allow read: if isAuthenticated();
       allow write: if isTrainer();
     }
 
-    regimenVersions/{versionId} {
+    match /regimenVersions/{versionId} {
       allow read: if isAuthenticated();
       allow write: if isTrainer();
     }
 
-    logsMeals/{logId} {
+    match /logsMeals/{logId} {
       allow read, write: if isAuthenticated();
     }
 
-    logsWorkouts/{logId} {
+    match /logsWorkouts/{logId} {
       allow read, write: if isAuthenticated();
     }
 
-    logsRegimen/{logId} {
+    match /logsRegimen/{logId} {
       allow read, write: if isAuthenticated();
     }
 
-    workoutSessions/{sessionId} {
+    match /logsWater/{logId} {
       allow read, write: if isAuthenticated();
     }
 
-    checkinTemplates/{templateId} {
+    match /stepsEntries/{entryId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /workoutSessions/{sessionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /checkinTemplates/{templateId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    checkins/{checkinId} {
+    match /sessionSurveyTemplates/{templateId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /workoutSessionSurveys/{surveyId} {
       allow read, write: if isAuthenticated();
     }
 
-    feedback/{feedbackId} {
+    match /checkins/{checkinId} {
       allow read, write: if isAuthenticated();
     }
 
-    messages/{threadId}/items/{messageId} {
+    match /feedback/{feedbackId} {
       allow read, write: if isAuthenticated();
     }
 
-    forums/{forumId} {
+    match /messageThreads/{threadId} {
       allow read, write: if isAuthenticated();
     }
 
-    tasks/{taskId} {
+    match /messages/{threadId}/items/{messageId} {
       allow read, write: if isAuthenticated();
     }
 
-    notifications/{notificationId} {
+    match /forums/{forumId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+      match /threads/{threadId} {
+        allow read, write: if isAuthenticated();
+        match /posts/{postId} {
+          allow read, write: if isAuthenticated();
+        }
+      }
+    }
+
+    match /forumMembers/{memberId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
       allow read, write: if isAuthenticated();
     }
 
-    fcmTokens/{uid}/tokens/{tokenId} {
+    match /notifications/{notificationId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /fcmTokens/{uid}/tokens/{tokenId} {
       allow read, write: if isAuthenticated() && isOwner(uid);
     }
 
-    allowedEmails/{docId} {
+    match /allowedEmails/{docId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+    }
+
+    match /userPreferences/{uid} {
+      allow read, write: if isAuthenticated() && isOwner(uid);
+    }
+
+    match /productivityEntries/{entryId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /calendarEvents/{eventId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /communityChallenges/{challengeId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /challengeParticipants/{participantId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /habits/{habitId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isTrainer();
+    }
+
+    match /clientNotes/{noteId} {
+      allow read, write: if isTrainer();
+    }
+
+    match /weeklyRecaps/{recapId} {
+      allow read, write: if isTrainer();
+    }
+
+    match /config/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /clientGoals/{goalId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /progressPhotos/{photoId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated();
+    }
+
+    match /progressMeasurements/{measurementId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    match /clientAchievements/{achievementId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
     }
   }
 }

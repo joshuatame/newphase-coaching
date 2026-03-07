@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
-import { auth, db, functions } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
 import type { UserProfile } from '@/types'
 
 export function useAuth() {
@@ -18,10 +17,16 @@ export function useAuth() {
       setNeedsOnboarding(false)
       if (firebaseUser) {
         if (firebaseUser.email) {
+          const checkInvite = async (): Promise<boolean> => {
+            const email = firebaseUser!.email!.toLowerCase()
+            const docId = email.replace(/\./g, '_')
+            const inviteDoc = await getDoc(doc(db, 'allowedEmails', docId))
+            return inviteDoc.exists()
+          }
           try {
-            const checkInvite = httpsCallable<unknown, { allowed: boolean }>(functions, 'checkInviteStatus')
-            const result = await checkInvite()
-            if (!result.data?.allowed) {
+            await firebaseUser.getIdToken(false)
+            const allowed = await checkInvite()
+            if (!allowed) {
               await signOut(auth)
               setInviteError('Platform is invite only. Your email is not on the list.')
               setUser(null)
@@ -30,22 +35,49 @@ export function useAuth() {
               return
             }
           } catch (err) {
-            console.error('Invite check failed:', err)
-            await signOut(auth)
-            setInviteError('Unable to verify access. Please try again.')
-            setUser(null)
-            setProfile(null)
-            setLoading(false)
-            return
+            const isPermissionDenied =
+              err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'permission-denied'
+            if (isPermissionDenied) {
+              await new Promise((r) => setTimeout(r, 400))
+              try {
+                const allowed = await checkInvite()
+                if (!allowed) {
+                  await signOut(auth)
+                  setInviteError('Platform is invite only. Your email is not on the list.')
+                  setUser(null)
+                  setProfile(null)
+                  setLoading(false)
+                  return
+                }
+              } catch (retryErr) {
+                console.error('Invite check failed (retry):', retryErr)
+                await signOut(auth)
+                setInviteError('Unable to verify access. Please try again.')
+                setUser(null)
+                setProfile(null)
+                setLoading(false)
+                return
+              }
+            } else {
+              console.error('Invite check failed:', err)
+              await signOut(auth)
+              setInviteError('Unable to verify access. Please try again.')
+              setUser(null)
+              setProfile(null)
+              setLoading(false)
+              return
+            }
           }
         }
-        const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+        const [profileDoc, clientDoc] = await Promise.all([
+          getDoc(doc(db, 'users', firebaseUser.uid)),
+          getDoc(doc(db, 'clients', firebaseUser.uid)),
+        ])
         const profileData = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null
         setProfile(profileData)
         setUser(firebaseUser)
 
         if (profileData?.role === 'client') {
-          const clientDoc = await getDoc(doc(db, 'clients', firebaseUser.uid))
           const clientData = clientDoc.data()
           if (!clientData?.onboardingComplete) {
             setNeedsOnboarding(true)
