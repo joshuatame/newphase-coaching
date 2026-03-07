@@ -13,7 +13,8 @@ export interface UserProfile {
 export interface ClientProfile {
   id: string
   uid: string
-  goals?: string
+  goals?: string | string[]
+  customGoals?: string[]
   trainingExperience?: string
   injuries?: string
   preferences?: string
@@ -21,6 +22,11 @@ export interface ClientProfile {
   timezone?: string
   units: 'metric' | 'imperial'
   startDate?: string
+  preferredMealTimes?: string[]
+  customMealSlots?: { label: string; time: string }[]
+  preferredTrainingTime?: string
+  supplementTimes?: { morning?: string; afternoon?: string; night?: string }
+  initialHabits?: string[]
   createdAt: string
   updatedAt: string
 }

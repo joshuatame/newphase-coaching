@@ -18,6 +18,8 @@ export interface CycleSupplement {
   dose?: string
   frequency?: string
   notes?: string
+  /** When to take: morning / afternoon / night — used for calendar reminders */
+  timeOfDay?: 'morning' | 'afternoon' | 'night'
 }
 
 export interface CycleForEditor {
@@ -79,7 +81,7 @@ export function CycleEditor({
       return
     setCycleSupplements((prev) => [
       ...prev,
-      { supplementId, name: sup.name },
+      { supplementId, name: sup.name, timeOfDay: 'morning' },
     ])
   }
 
@@ -222,6 +224,22 @@ export function CycleEditor({
                           }
                           className="h-8"
                         />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">When</label>
+                        <select
+                          className="w-full h-8 rounded-lg border border-input bg-background px-2 text-sm"
+                          value={s.timeOfDay ?? 'morning'}
+                          onChange={(e) =>
+                            updateSupplement(s.supplementId, {
+                              timeOfDay: e.target.value as 'morning' | 'afternoon' | 'night',
+                            })
+                          }
+                        >
+                          <option value="morning">Morning</option>
+                          <option value="afternoon">Afternoon</option>
+                          <option value="night">Night</option>
+                        </select>
                       </div>
                     </div>
                     <div>

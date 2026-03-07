@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
+import { useMyClientId } from '@/hooks/useMyClientId'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export function TrainerOnboardingPage() {
-  const { user, refetch } = useAuth()
+  const { user, refetch, needsTrainerOnboarding, isDualRole } = useAuth()
+  const myClientId = useMyClientId()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -41,12 +43,32 @@ export function TrainerOnboardingPage() {
 
   if (!user) return null
 
+  if (!needsTrainerOnboarding) {
+    return <Navigate to="/onboarding" replace />
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-md mx-auto">
+        {isDualRole && (
+          <div className="flex items-center gap-2 mb-6">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary text-sm font-medium">1</span>
+            <span className="h-0.5 w-8 bg-primary rounded" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">2</span>
+            <span className="text-sm text-muted-foreground ml-2">Client profile → Trainer profile</span>
+          </div>
+        )}
+        {isDualRole && (
+          <p className="text-sm font-medium text-primary mb-2">Step 2 of 2 — Your trainer profile</p>
+        )}
         <h1 className="text-2xl font-bold mb-2">Complete your trainer profile</h1>
         <p className="text-muted-foreground mb-8">
-          Add your details to get started.
+          Add your details to get started. You can create and assign meal plans, workouts, and supplement regimens to yourself and any other clients.
+          {myClientId && (
+            <span className="block mt-2 text-sm">
+              You're also set up as a client—track your own meals, water, habits, and progress from the dashboard.
+            </span>
+          )}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">

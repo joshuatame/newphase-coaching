@@ -7,13 +7,14 @@ import { SamsungPWANotice } from './components/SamsungPWANotice'
 import { LoginPage } from './pages/LoginPage'
 import { ClientOnboardingPage } from './pages/ClientOnboardingPage'
 import { TrainerOnboardingPage } from './pages/TrainerOnboardingPage'
+import { OnboardingGuard } from './components/OnboardingGuard'
 
 const DashboardLayout = lazy(() =>
   import('./components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout }))
 )
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, needsOnboarding } = useAuth()
+  const { user, loading, needsOnboarding } = useAuth()
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -25,12 +26,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
   if (needsOnboarding) {
-    if (profile?.role === 'client') {
-      return <Navigate to="/onboarding/client" replace />
-    }
-    if (profile?.role === 'trainer' || profile?.role === 'admin') {
-      return <Navigate to="/onboarding/trainer" replace />
-    }
+    return <Navigate to="/onboarding" replace />
   }
   return <>{children}</>
 }
@@ -54,6 +50,7 @@ function App() {
       <SamsungPWANotice />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/onboarding" element={<OnboardingRoute><OnboardingGuard /></OnboardingRoute>} />
         <Route path="/onboarding/client" element={<OnboardingRoute><ClientOnboardingPage /></OnboardingRoute>} />
         <Route path="/onboarding/trainer" element={<OnboardingRoute><TrainerOnboardingPage /></OnboardingRoute>} />
         <Route

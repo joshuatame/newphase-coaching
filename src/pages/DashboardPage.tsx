@@ -151,7 +151,10 @@ export function DashboardPage() {
     <>
       {isBlended && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-muted-foreground mb-3">My progress (self-coach)</h2>
+          <h2 className="text-lg font-semibold text-muted-foreground mb-1">My progress (self-coach)</h2>
+          <p className="text-sm text-muted-foreground">
+            You're set up as both coach and client. Track your own meals, water, habits, and progress here; use the rest of the app to manage plans and other clients.
+          </p>
         </div>
       )}
       {myClientId && (

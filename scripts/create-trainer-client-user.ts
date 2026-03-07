@@ -1,15 +1,14 @@
 /**
- * Create a trainer+client user so you can be your own trainer.
+ * Create a trainer+client+admin user so you can be your own trainer with full admin rights.
  * Run: npx tsx scripts/create-trainer-client-user.ts
  *
  * Creates:
  * - Firebase Auth user (email/password)
- * - users/{uid} with role: 'trainer'
+ * - users/{uid} with role: 'admin'
  * - clients/{uid} document linked to that user (uid field) so they appear as a client
  * - allowedEmails entry for invite-only access
  *
- * After running, log in with the credentials and you'll see both trainer sidebar and your
- * own client record under Clients. Assign yourself to meal plans / workout plans as needed.
+ * After running, log in with the credentials. You get admin + trainer + your own client record.
  */
 import 'dotenv/config'
 import { readFileSync } from 'fs'
@@ -58,13 +57,13 @@ async function main() {
         uid: user.uid,
         email: EMAIL,
         displayName: DISPLAY_NAME,
-        role: 'trainer',
+        role: 'admin',
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     )
-    console.log("Updated users/" + user.uid + " with role: trainer")
+    console.log("Updated users/" + user.uid + " with role: admin")
 
     const clientRef = db.collection('clients').doc(user.uid)
     await clientRef.set(
@@ -93,7 +92,7 @@ async function main() {
     console.log('Email:', EMAIL)
     console.log('Password:', PASSWORD)
     console.log('---')
-    console.log('Log in and go to Clients to see yourself. Use Analytics and Meal/Training plans as your own trainer.')
+    console.log('Log in with the credentials above. You have admin + trainer + your own client record.')
   } catch (err) {
     console.error(err)
     process.exit(1)

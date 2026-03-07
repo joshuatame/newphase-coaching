@@ -38,12 +38,14 @@ async function main() {
     try {
       user = await auth.getUserByEmail(ADMIN_EMAIL)
       console.log('User already exists:', user.uid)
+      await auth.updateUser(user.uid, { password: ADMIN_PASSWORD })
+      console.log('Password updated to provided ADMIN_PASSWORD')
     } catch {
       user = await auth.createUser({
         email: ADMIN_EMAIL,
         password: ADMIN_PASSWORD,
         emailVerified: true,
-        displayName: 'Admin Tester',
+        displayName: ADMIN_EMAIL.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
       })
       console.log('Created user:', user.uid)
     }
@@ -51,8 +53,9 @@ async function main() {
     await db.collection('users').doc(user.uid).set({
       uid: user.uid,
       email: ADMIN_EMAIL,
-      displayName: 'Admin Tester',
+      displayName: user.displayName || ADMIN_EMAIL.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
       role: 'admin',
+      onboardingComplete: true,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true })

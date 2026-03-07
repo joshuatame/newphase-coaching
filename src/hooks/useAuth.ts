@@ -10,11 +10,20 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  /** True when user has a client record and must complete client onboarding (used for dual trainer+client). */
+  const [needsClientOnboarding, setNeedsClientOnboarding] = useState(false)
+  /** True when trainer/admin must complete trainer onboarding. */
+  const [needsTrainerOnboarding, setNeedsTrainerOnboarding] = useState(false)
+  /** True when a client doc exists for this user (trainer who is also a client). */
+  const [hasClientDoc, setHasClientDoc] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setInviteError(null)
       setNeedsOnboarding(false)
+      setNeedsClientOnboarding(false)
+      setNeedsTrainerOnboarding(false)
+      setHasClientDoc(false)
       if (firebaseUser) {
         if (firebaseUser.email) {
           const checkInvite = async (): Promise<boolean> => {
@@ -79,13 +88,20 @@ export function useAuth() {
 
         if (profileData?.role === 'client') {
           const clientData = clientDoc.data()
-          if (!clientData?.onboardingComplete) {
-            setNeedsOnboarding(true)
-          }
+          const needClient = !clientData?.onboardingComplete
+          setNeedsClientOnboarding(needClient)
+          setNeedsTrainerOnboarding(false)
+          setNeedsOnboarding(needClient)
+          setHasClientDoc(clientDoc.exists())
         } else if (profileData?.role === 'trainer' || profileData?.role === 'admin') {
-          if (!(profileData as UserProfile & { onboardingComplete?: boolean }).onboardingComplete) {
-            setNeedsOnboarding(true)
-          }
+          const hasClientDocVal = clientDoc.exists()
+          const clientData = clientDoc.data()
+          const needClient = hasClientDocVal && !clientData?.onboardingComplete
+          const needTrainer = !(profileData as UserProfile & { onboardingComplete?: boolean }).onboardingComplete
+          setNeedsClientOnboarding(needClient)
+          setNeedsTrainerOnboarding(needTrainer)
+          setNeedsOnboarding(needClient || needTrainer)
+          setHasClientDoc(hasClientDocVal)
         }
       } else {
         setUser(null)
@@ -98,17 +114,37 @@ export function useAuth() {
 
   const refetch = async () => {
     if (!user) return
-    const profileDoc = await getDoc(doc(db, 'users', user.uid))
+    const [profileDoc, clientDoc] = await Promise.all([
+      getDoc(doc(db, 'users', user.uid)),
+      getDoc(doc(db, 'clients', user.uid)),
+    ])
     const profileData = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null
     setProfile(profileData)
     if (profileData?.role === 'client') {
-      const clientDoc = await getDoc(doc(db, 'clients', user.uid))
       const clientData = clientDoc.data()
-      setNeedsOnboarding(!clientData?.onboardingComplete)
+      const needClient = !clientData?.onboardingComplete
+      setNeedsClientOnboarding(needClient)
+      setNeedsTrainerOnboarding(false)
+      setNeedsOnboarding(needClient)
+      setHasClientDoc(clientDoc.exists())
+    } else if (profileData?.role === 'trainer' || profileData?.role === 'admin') {
+      const hasClientDocVal = clientDoc.exists()
+      const clientData = clientDoc.data()
+      const needClient = hasClientDocVal && !clientData?.onboardingComplete
+      const needTrainer = !(profileData as UserProfile & { onboardingComplete?: boolean }).onboardingComplete
+      setNeedsClientOnboarding(needClient)
+      setNeedsTrainerOnboarding(needTrainer)
+      setNeedsOnboarding(needClient || needTrainer)
+      setHasClientDoc(hasClientDocVal)
     } else {
-      setNeedsOnboarding(!(profileData as UserProfile & { onboardingComplete?: boolean }).onboardingComplete)
+      setNeedsClientOnboarding(false)
+      setNeedsTrainerOnboarding(false)
+      setNeedsOnboarding(false)
+      setHasClientDoc(false)
     }
   }
 
-  return { user, profile, loading, inviteError, needsOnboarding, refetch }
+  const isDualRole = (profile?.role === 'trainer' || profile?.role === 'admin') && hasClientDoc
+
+  return { user, profile, loading, inviteError, needsOnboarding, needsClientOnboarding, needsTrainerOnboarding, hasClientDoc, isDualRole, refetch }
 }

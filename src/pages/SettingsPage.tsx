@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { useMyClientId } from '@/hooks/useMyClientId'
 import { db, storage } from '@/lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
@@ -9,7 +11,10 @@ import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Key, Bell, EnvelopeSimple, UserCircle, Camera } from '@phosphor-icons/react'
+import { Key, Bell, EnvelopeSimple, UserCircle, Camera, CalendarBlank } from '@phosphor-icons/react'
+import { buildCalendarIcs, downloadIcs } from '@/lib/calendar-export'
+import type { CalendarExportInput } from '@/lib/calendar-export'
+
 export interface UserPreferences {
   notificationsPush: boolean
   notificationsEmail: boolean
@@ -38,8 +43,11 @@ const DEFAULT_PREFS: UserPreferences = {
 
 export function SettingsPage() {
   const { user, profile, refetch } = useAuth()
+  const myClientId = useMyClientId()
   const queryClient = useQueryClient()
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [calendarDays, setCalendarDays] = useState(14)
+  const [calendarStart, setCalendarStart] = useState(() => new Date().toISOString().slice(0, 10))
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -113,6 +121,72 @@ export function SettingsPage() {
   })
 
   const photoURL = user?.photoURL ?? profile?.photoURL
+
+  const { data: clientDoc } = useQuery({
+    queryKey: ['client', myClientId],
+    queryFn: async () => {
+      if (!myClientId) return null
+      const snap = await getDoc(doc(db, 'clients', myClientId))
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null
+    },
+    enabled: !!myClientId,
+  })
+
+  const { data: mealPlans = [] } = useQuery({
+    queryKey: ['mealPlanVersions'],
+    queryFn: async () => {
+      const snap = await getDocs(query(collection(db, 'mealPlanVersions'), orderBy('createdAt', 'desc')))
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    },
+    enabled: !!myClientId,
+  })
+
+  const { data: workoutPlans = [] } = useQuery({
+    queryKey: ['workoutPlanVersions'],
+    queryFn: async () => {
+      const snap = await getDocs(query(collection(db, 'workoutPlanVersions'), orderBy('createdAt', 'desc')))
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    },
+    enabled: !!myClientId,
+  })
+
+  const { data: regimens = [] } = useQuery({
+    queryKey: ['regimenVersions'],
+    queryFn: async () => {
+      const snap = await getDocs(query(collection(db, 'regimenVersions'), orderBy('createdAt', 'desc')))
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    },
+    enabled: !!myClientId,
+  })
+
+  const myMealPlan = mealPlans.find((p) => (p as { clientIds?: string[] }).clientIds?.includes(myClientId ?? ''))
+  const myWorkoutPlan = workoutPlans.find((p) => (p as { clientIds?: string[] }).clientIds?.includes(myClientId ?? ''))
+  const myRegimen = regimens.find((p) => (p as { clientIds?: string[] }).clientIds?.includes(myClientId ?? ''))
+
+  const handleExportCalendar = () => {
+    const client = clientDoc as Record<string, unknown> | null
+    if (!client) {
+      setMessage({ type: 'error', text: 'Client profile not found. Complete onboarding first.' })
+      return
+    }
+    const ics = buildCalendarIcs({
+      client: {
+        customMealSlots: client.customMealSlots as { label: string; time: string }[] | undefined,
+        preferredMealTimes: client.preferredMealTimes as string[] | undefined,
+        preferredTrainingTime: (client.preferredTrainingTime as string) ?? undefined,
+        supplementTimes: client.supplementTimes as { morning?: string; afternoon?: string; night?: string } | undefined,
+        timezone: (client.timezone as string) ?? undefined,
+      },
+      mealPlan: myMealPlan as CalendarExportInput['mealPlan'],
+      workoutPlan: myWorkoutPlan as CalendarExportInput['workoutPlan'],
+      regimen: myRegimen as CalendarExportInput['regimen'],
+      startDate: new Date(calendarStart),
+      numDays: Math.min(90, Math.max(1, calendarDays)),
+    })
+    const filename = `newphase-schedule-${calendarStart}-${calendarDays}d.ics`
+    downloadIcs(ics, filename)
+    setMessage({ type: 'success', text: `Downloaded ${filename}. Add it to Gmail or Outlook.` })
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-8 max-w-2xl">
@@ -365,6 +439,50 @@ export function SettingsPage() {
           />
         </div>
       </div>
+
+      {myClientId && (
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+          <h2 className="font-semibold flex items-center gap-2">
+            <CalendarBlank className="h-5 w-5 text-primary" weight="duotone" />
+            Calendar sync (Gmail &amp; Outlook)
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Export your schedule as an ICS file: meals (with foods), training (workout details), and supplements (time, compound, quantity).
+            Add the file to Google Calendar or Outlook to get reminders.
+          </p>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <Label htmlFor="calStart" className="text-xs">Start date</Label>
+              <Input
+                id="calStart"
+                type="date"
+                value={calendarStart}
+                onChange={(e) => setCalendarStart(e.target.value)}
+                className="mt-1 w-[140px]"
+              />
+            </div>
+            <div>
+              <Label htmlFor="calDays" className="text-xs">Days to export (1–90)</Label>
+              <Input
+                id="calDays"
+                type="number"
+                min={1}
+                max={90}
+                value={calendarDays}
+                onChange={(e) => setCalendarDays(Math.min(90, Math.max(1, parseInt(e.target.value, 10) || 7)))}
+                className="mt-1 w-[80px]"
+              />
+            </div>
+            <Button onClick={handleExportCalendar}>
+              Download ICS file
+            </Button>
+          </div>
+          <div className="text-sm text-muted-foreground space-y-2 pt-2 border-t border-border">
+            <p><strong>Google Calendar:</strong> Open Google Calendar → Settings → Import &amp; export → Select file → choose the downloaded .ics file.</p>
+            <p><strong>Outlook:</strong> Outlook Calendar → Add calendar → From file → choose the downloaded .ics file.</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
