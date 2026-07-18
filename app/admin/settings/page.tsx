@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminButton, Field, TextArea, TextInput } from "@/components/admin/ui";
-import { adminGetSite, adminUpdateSite } from "@/lib/api/newphase";
-import type { SiteSettings } from "@/types/newphase";
+import {
+  AdminButton,
+  Field,
+  TextArea,
+  TextInput,
+  Toggle,
+} from "@/components/admin/ui";
+import { DEFAULT_APPLY_FORM, mergeApplyFormConfig } from "@/lib/apply-form";
+import { adminGetApplyForm, adminGetSite, adminUpdateSite } from "@/lib/api/newphase";
+import type { ApplyFormConfig, ApplyFormField, SiteSettings } from "@/types/newphase";
 
 export default function AdminSettingsPage() {
   const [site, setSite] = useState<SiteSettings>({});
+  const [applyForm, setApplyForm] = useState<ApplyFormConfig>(DEFAULT_APPLY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -17,10 +25,15 @@ export default function AdminSettingsPage() {
     let active = true;
     (async () => {
       try {
-        const data = await adminGetSite();
-        if (active && data) setSite(data);
+        const [siteData, formData] = await Promise.all([
+          adminGetSite(),
+          adminGetApplyForm(),
+        ]);
+        if (!active) return;
+        if (siteData) setSite(siteData);
+        setApplyForm(formData);
       } catch {
-        /* new site — start empty */
+        /* new site — start with defaults */
       } finally {
         if (active) setLoading(false);
       }
@@ -33,12 +46,23 @@ export default function AdminSettingsPage() {
   const set = (patch: Partial<SiteSettings>) =>
     setSite((s) => ({ ...s, ...patch }));
 
+  const patchApply = (patch: Partial<ApplyFormConfig>) =>
+    setApplyForm((f) => ({ ...f, ...patch }));
+
+  const patchField = (key: ApplyFormField["key"], patch: Partial<ApplyFormField>) =>
+    setApplyForm((f) => ({
+      ...f,
+      fields: f.fields.map((field) =>
+        field.key === key ? { ...field, ...patch } : field,
+      ),
+    }));
+
   const save = async () => {
     setSaving(true);
     setMessage("");
     setError("");
     try {
-      await adminUpdateSite(site);
+      await adminUpdateSite({ ...site, applyForm: mergeApplyFormConfig(applyForm) });
       setMessage("Settings saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -57,7 +81,7 @@ export default function AdminSettingsPage() {
 
   return (
     <AdminShell title="Settings">
-      <div className="max-w-2xl space-y-8">
+      <div className="max-w-3xl space-y-8">
         <section className="rounded-2xl surface p-6">
           <h2 className="font-display text-xl tracking-wide text-off-white">
             Brand
@@ -82,27 +106,6 @@ export default function AdminSettingsPage() {
                 rows={3}
                 value={site.description || ""}
                 onChange={(e) => set({ description: e.target.value })}
-              />
-            </Field>
-          </div>
-        </section>
-
-        <section className="rounded-2xl surface p-6">
-          <h2 className="font-display text-xl tracking-wide text-off-white">
-            Hero
-          </h2>
-          <div className="mt-4 space-y-4">
-            <Field label="Hero headline">
-              <TextInput
-                value={site.heroHeadline || ""}
-                onChange={(e) => set({ heroHeadline: e.target.value })}
-              />
-            </Field>
-            <Field label="Hero subline">
-              <TextArea
-                rows={2}
-                value={site.heroSubline || ""}
-                onChange={(e) => set({ heroSubline: e.target.value })}
               />
             </Field>
           </div>
@@ -137,6 +140,141 @@ export default function AdminSettingsPage() {
                 onChange={(e) => set({ tiktok: e.target.value })}
               />
             </Field>
+          </div>
+        </section>
+
+        <section className="rounded-2xl surface p-6">
+          <h2 className="font-display text-xl tracking-wide text-off-white">
+            Apply form
+          </h2>
+          <p className="mt-1 text-sm text-steel">
+            Edit the public application page copy and field labels. Name, email,
+            and consent always stay required.
+          </p>
+
+          <div className="mt-5 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Page eyebrow">
+                <TextInput
+                  value={applyForm.pageEyebrow}
+                  onChange={(e) => patchApply({ pageEyebrow: e.target.value })}
+                />
+              </Field>
+              <Field label="Submit button">
+                <TextInput
+                  value={applyForm.submitLabel}
+                  onChange={(e) => patchApply({ submitLabel: e.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="Page title">
+              <TextInput
+                value={applyForm.pageTitle}
+                onChange={(e) => patchApply({ pageTitle: e.target.value })}
+              />
+            </Field>
+            <Field label="Page intro">
+              <TextArea
+                rows={3}
+                value={applyForm.pageIntro}
+                onChange={(e) => patchApply({ pageIntro: e.target.value })}
+              />
+            </Field>
+            <Field label="Consent text">
+              <TextArea
+                rows={2}
+                value={applyForm.consentLabel}
+                onChange={(e) => patchApply({ consentLabel: e.target.value })}
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Success title">
+                <TextInput
+                  value={applyForm.successTitle}
+                  onChange={(e) => patchApply({ successTitle: e.target.value })}
+                />
+              </Field>
+              <Field label="Success message">
+                <TextArea
+                  rows={2}
+                  value={applyForm.successBody}
+                  onChange={(e) => patchApply({ successBody: e.target.value })}
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="mt-8 space-y-4">
+            <h3 className="text-xs uppercase tracking-[0.2em] text-steel">
+              Fields
+            </h3>
+            {applyForm.fields.map((field) => (
+              <div
+                key={field.key}
+                className="rounded-xl border border-[color:var(--edge)] bg-near-black/40 p-4"
+              >
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-off-white">
+                    {field.key}
+                    {field.locked ? (
+                      <span className="ml-2 text-xs text-steel">(required)</span>
+                    ) : null}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-4">
+                    {!field.locked && (
+                      <Toggle
+                        checked={field.visible}
+                        onChange={(v) => patchField(field.key, { visible: v })}
+                        label="Visible"
+                      />
+                    )}
+                    {!field.locked && (
+                      <Toggle
+                        checked={field.required}
+                        onChange={(v) => patchField(field.key, { required: v })}
+                        label="Required"
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Label">
+                    <TextInput
+                      value={field.label}
+                      onChange={(e) =>
+                        patchField(field.key, { label: e.target.value })
+                      }
+                    />
+                  </Field>
+                  <Field label="Placeholder">
+                    <TextInput
+                      value={field.placeholder || ""}
+                      onChange={(e) =>
+                        patchField(field.key, { placeholder: e.target.value })
+                      }
+                    />
+                  </Field>
+                </div>
+                {field.type === "select" && (
+                  <div className="mt-3">
+                    <Field label="Options (one per line)">
+                      <TextArea
+                        rows={4}
+                        value={(field.options || []).join("\n")}
+                        onChange={(e) =>
+                          patchField(field.key, {
+                            options: e.target.value
+                              .split("\n")
+                              .map((line) => line.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
 

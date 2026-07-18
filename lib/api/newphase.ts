@@ -9,7 +9,12 @@ import {
   unwrapItem,
   unwrapList,
 } from "./client";
+import {
+  APPLY_FORM_SETTING_KEY,
+  mergeApplyFormConfig,
+} from "@/lib/apply-form";
 import type {
+  ApplyFormConfig,
   AuthResponse,
   Client,
   DashboardStats,
@@ -20,11 +25,100 @@ import type {
   Package,
   PackageFeature,
   Section,
+  SiteSettingRow,
   SiteSettings,
   Testimonial,
 } from "@/types/newphase";
 
 const NP = "/newphase-coaching";
+
+/** Flat SiteSettings fields ↔ NewphaseSiteSetting keys. */
+const SITE_FLAT_KEYS: Array<{
+  flat: keyof SiteSettings;
+  key: string;
+  group: string;
+  label: string;
+  valueType: string;
+}> = [
+  {
+    flat: "name",
+    key: "business.name",
+    group: "general",
+    label: "Business name",
+    valueType: "string",
+  },
+  {
+    flat: "tagline",
+    key: "business.tagline",
+    group: "general",
+    label: "Tagline",
+    valueType: "string",
+  },
+  {
+    flat: "description",
+    key: "business.description",
+    group: "general",
+    label: "Description",
+    valueType: "string",
+  },
+  {
+    flat: "email",
+    key: "contact.email",
+    group: "contact",
+    label: "Contact email",
+    valueType: "string",
+  },
+  {
+    flat: "phone",
+    key: "contact.phone",
+    group: "contact",
+    label: "Contact phone",
+    valueType: "string",
+  },
+  {
+    flat: "instagram",
+    key: "social.instagram",
+    group: "social",
+    label: "Instagram URL",
+    valueType: "url",
+  },
+  {
+    flat: "facebook",
+    key: "social.facebook",
+    group: "social",
+    label: "Facebook URL",
+    valueType: "url",
+  },
+  {
+    flat: "tiktok",
+    key: "social.tiktok",
+    group: "social",
+    label: "TikTok URL",
+    valueType: "url",
+  },
+];
+
+function settingsByKeyFromRows(
+  rows: SiteSettingRow[],
+): Record<string, unknown> {
+  const byKey: Record<string, unknown> = {};
+  for (const row of rows) byKey[row.key] = row.value;
+  return byKey;
+}
+
+function flatSiteFromByKey(byKey: Record<string, unknown>): SiteSettings {
+  const site: SiteSettings = {};
+  for (const map of SITE_FLAT_KEYS) {
+    const value = byKey[map.key];
+    if (typeof value === "string") {
+      (site as Record<string, unknown>)[map.flat] = value;
+    }
+  }
+  if (byKey[APPLY_FORM_SETTING_KEY] !== undefined) {
+    site.applyForm = mergeApplyFormConfig(byKey[APPLY_FORM_SETTING_KEY]);
+  }
+  return site;
+}
 
 /** Map Prisma client fields → frontend Client shape. */
 function normalizeClient(raw: Client): Client {
@@ -90,7 +184,24 @@ function toClientDto(data: Partial<Client>) {
 
 export async function getSite(): Promise<SiteSettings | null> {
   const res = await apiFetch<unknown>(`${NP}/site`);
-  return unwrapItem<SiteSettings>(res);
+  const data = unwrapItem<{
+    settings?: SiteSettingRow[];
+    settingsByKey?: Record<string, unknown>;
+  }>(res);
+  if (!data) return null;
+  const byKey =
+    data.settingsByKey ||
+    (data.settings ? settingsByKeyFromRows(data.settings) : null);
+  return byKey ? flatSiteFromByKey(byKey) : null;
+}
+
+export async function getApplyFormConfig(): Promise<ApplyFormConfig> {
+  try {
+    const site = await getSite();
+    return mergeApplyFormConfig(site?.applyForm);
+  } catch {
+    return mergeApplyFormConfig();
+  }
 }
 
 export async function getSections(): Promise<Section[]> {
@@ -498,19 +609,122 @@ export async function adminUpdateSection(
 }
 
 /* --- Admin: Site settings --- */
-export async function adminGetSite(): Promise<SiteSettings | null> {
-  const res = await apiFetch<unknown>(`${NP}/admin/site`, { auth: true });
-  return unwrapItem<SiteSettings>(res);
+export async function adminListSettings(): Promise<SiteSettingRow[]> {
+  const res = await apiFetch<unknown>(`${NP}/admin/settings`, { auth: true });
+  return unwrapList<SiteSettingRow>(res);
 }
+
+async function adminUpsertSetting(
+  input: {
+    key: string;
+    group: string;
+    label: string;
+    value: unknown;
+    valueType: string;
+    isPublic?: boolean;
+    sortOrder?: number;
+  },
+  existingRows?: SiteSettingRow[],
+): Promise<SiteSettingRow | null> {
+  const rows = existingRows ?? (await adminListSettings());
+  const existing = rows.find((s) => s.key === input.key);
+  if (existing) {
+    const res = await apiFetch<unknown>(`${NP}/admin/settings/${existing.id}`, {
+      method: "PUT",
+      auth: true,
+      body: {
+        group: input.group,
+        label: input.label,
+        value: input.value,
+        valueType: input.valueType,
+        isPublic: input.isPublic ?? true,
+        sortOrder: input.sortOrder,
+      },
+    });
+    return unwrapItem<SiteSettingRow>(res);
+  }
+  const res = await apiFetch<unknown>(`${NP}/admin/settings`, {
+    method: "POST",
+    auth: true,
+    body: {
+      key: input.key,
+      group: input.group,
+      label: input.label,
+      value: input.value,
+      valueType: input.valueType,
+      isPublic: input.isPublic ?? true,
+      sortOrder: input.sortOrder ?? 0,
+    },
+  });
+  return unwrapItem<SiteSettingRow>(res);
+}
+
+export async function adminGetSite(): Promise<SiteSettings | null> {
+  const rows = await adminListSettings();
+  return flatSiteFromByKey(settingsByKeyFromRows(rows));
+}
+
 export async function adminUpdateSite(
   data: Partial<SiteSettings>,
 ): Promise<SiteSettings | null> {
-  const res = await apiFetch<unknown>(`${NP}/admin/site`, {
-    method: "PUT",
-    body: data,
-    auth: true,
-  });
-  return unwrapItem<SiteSettings>(res);
+  const rows = await adminListSettings();
+  for (const map of SITE_FLAT_KEYS) {
+    if (!(map.flat in data)) continue;
+    const value = data[map.flat];
+    if (value === undefined) continue;
+    await adminUpsertSetting(
+      {
+        key: map.key,
+        group: map.group,
+        label: map.label,
+        value: value ?? "",
+        valueType: map.valueType,
+        isPublic: true,
+      },
+      rows,
+    );
+  }
+
+  if (data.applyForm !== undefined) {
+    await adminUpsertSetting(
+      {
+        key: APPLY_FORM_SETTING_KEY,
+        group: "apply",
+        label: "Apply form",
+        value: mergeApplyFormConfig(data.applyForm),
+        valueType: "json",
+        isPublic: true,
+        sortOrder: 0,
+      },
+      rows,
+    );
+  }
+
+  return adminGetSite();
+}
+
+export async function adminGetApplyForm(): Promise<ApplyFormConfig> {
+  const site = await adminGetSite();
+  return mergeApplyFormConfig(site?.applyForm);
+}
+
+export async function adminUpdateApplyForm(
+  config: ApplyFormConfig,
+): Promise<ApplyFormConfig> {
+  const rows = await adminListSettings();
+  await adminUpsertSetting(
+    {
+      key: APPLY_FORM_SETTING_KEY,
+      group: "apply",
+      label: "Apply form",
+      value: mergeApplyFormConfig(config),
+      valueType: "json",
+      isPublic: true,
+      sortOrder: 0,
+    },
+    rows,
+  );
+  return adminGetApplyForm();
 }
 
 /* --- Admin: Enquiries / Applications --- */

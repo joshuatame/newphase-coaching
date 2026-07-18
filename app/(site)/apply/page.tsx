@@ -1,25 +1,29 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { useAsync } from "@/lib/useAsync";
-import { getPackages, submitEnquiry } from "@/lib/api/newphase";
+import {
+  DEFAULT_APPLY_FORM,
+  mergeApplyFormConfig,
+  visibleApplyFields,
+} from "@/lib/apply-form";
+import { getApplyFormConfig, getPackages, submitEnquiry } from "@/lib/api/newphase";
 import { FALLBACK_PACKAGES } from "@/lib/fallbacks";
-import type { EnquiryPayload, Package } from "@/types/newphase";
+import type {
+  ApplyFormConfig,
+  ApplyFormField,
+  EnquiryPayload,
+  Package,
+} from "@/types/newphase";
 
-const EXPERIENCE_LEVELS = [
-  "Just getting started",
-  "Some training experience",
-  "Consistent for 1+ years",
-  "Advanced / competitive",
-];
-
-function ApplyForm() {
+function ApplyForm({ config }: { config: ApplyFormConfig }) {
   const params = useSearchParams();
   const { data: packages } = useAsync<Package[]>(getPackages, FALLBACK_PACKAGES);
+  const fields = useMemo(() => visibleApplyFields(config), [config]);
 
   const [form, setForm] = useState<EnquiryPayload>({
     name: "",
@@ -87,11 +91,10 @@ function ApplyForm() {
             </svg>
           </span>
           <h2 className="display-lg mt-6 text-3xl text-off-white">
-            Application received
+            {config.successTitle}
           </h2>
           <p className="mt-3 text-steel">
-            Thanks {form.name.split(" ")[0]}. We&rsquo;ll review your goals and be
-            in touch within 24&ndash;48 hours to map out your next phase.
+            Thanks {form.name.split(" ")[0]}. {config.successBody}
           </p>
           <Link href="/" className="btn btn-ghost mt-8">
             Back to Home
@@ -104,66 +107,29 @@ function ApplyForm() {
   const inputCls =
     "w-full rounded-xl border border-[color:var(--edge-strong)] bg-near-black px-4 py-3.5 text-off-white placeholder:text-steel/60 transition-colors focus:border-accent focus:outline-none";
 
-  return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="name" className="mb-2 block text-sm text-soft-silver">
-            Full name <span className="text-accent">*</span>
-          </label>
-          <input
-            id="name"
-            required
-            value={form.name}
-            onChange={(e) => update("name", e.target.value)}
-            className={inputCls}
-            placeholder="Jordan Smith"
-          />
-        </div>
-        <div>
-          <label htmlFor="email" className="mb-2 block text-sm text-soft-silver">
-            Email <span className="text-accent">*</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={form.email}
-            onChange={(e) => update("email", e.target.value)}
-            className={inputCls}
-            placeholder="you@email.com"
-          />
-        </div>
-      </div>
+  const renderField = (field: ApplyFormField) => {
+    const label = (
+      <label
+        htmlFor={field.key}
+        className="mb-2 block text-sm text-soft-silver"
+      >
+        {field.label}
+        {field.required ? <span className="text-accent"> *</span> : null}
+      </label>
+    );
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="phone" className="mb-2 block text-sm text-soft-silver">
-            Phone
-          </label>
-          <input
-            id="phone"
-            type="tel"
-            value={form.phone}
-            onChange={(e) => update("phone", e.target.value)}
-            className={inputCls}
-            placeholder="Optional"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="package"
-            className="mb-2 block text-sm text-soft-silver"
-          >
-            Package of interest
-          </label>
+    if (field.type === "package") {
+      return (
+        <div key={field.key}>
+          {label}
           <select
-            id="package"
-            value={form.packageId}
+            id={field.key}
+            value={form.packageId || ""}
+            required={field.required}
             onChange={(e) => update("packageId", e.target.value)}
             className={inputCls}
           >
-            <option value="">Not sure yet</option>
+            <option value="">{field.placeholder || "Not sure yet"}</option>
             {packages.map((p) => (
               <option key={p.id} value={p.slug || p.id}>
                 {p.name}
@@ -172,90 +138,94 @@ function ApplyForm() {
             ))}
           </select>
         </div>
-      </div>
+      );
+    }
 
-      <div>
-        <label
-          htmlFor="experience"
-          className="mb-2 block text-sm text-soft-silver"
-        >
-          Training experience
-        </label>
-        <select
-          id="experience"
-          value={form.experience}
-          onChange={(e) => update("experience", e.target.value)}
-          className={inputCls}
-        >
-          <option value="">Select one</option>
-          {EXPERIENCE_LEVELS.map((lvl) => (
-            <option key={lvl} value={lvl}>
-              {lvl}
-            </option>
-          ))}
-        </select>
-      </div>
+    if (field.type === "select") {
+      return (
+        <div key={field.key}>
+          {label}
+          <select
+            id={field.key}
+            value={(form[field.key] as string) || ""}
+            required={field.required}
+            onChange={(e) => update(field.key, e.target.value)}
+            className={inputCls}
+          >
+            <option value="">{field.placeholder || "Select one"}</option>
+            {(field.options || []).map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    }
 
-      <div>
-        <label htmlFor="goal" className="mb-2 block text-sm text-soft-silver">
-          Primary goal
-        </label>
+    if (field.type === "textarea") {
+      return (
+        <div key={field.key}>
+          {label}
+          <textarea
+            id={field.key}
+            rows={3}
+            required={field.required}
+            value={(form[field.key] as string) || ""}
+            onChange={(e) => update(field.key, e.target.value)}
+            className={`${inputCls} resize-none`}
+            placeholder={field.placeholder}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key}>
+        {label}
         <input
-          id="goal"
-          value={form.goal}
-          onChange={(e) => update("goal", e.target.value)}
+          id={field.key}
+          type={field.type === "email" || field.type === "tel" ? field.type : "text"}
+          required={field.required}
+          value={(form[field.key] as string) || ""}
+          onChange={(e) => update(field.key, e.target.value)}
           className={inputCls}
-          placeholder="e.g. Build muscle, improve body composition, get stronger"
+          placeholder={field.placeholder}
         />
       </div>
+    );
+  };
 
-      <div>
-        <label
-          htmlFor="challenge"
-          className="mb-2 block text-sm text-soft-silver"
-        >
-          What are you struggling with?
-        </label>
-        <textarea
-          id="challenge"
-          rows={3}
-          value={form.challenge}
-          onChange={(e) => update("challenge", e.target.value)}
-          className={`${inputCls} resize-none`}
-          placeholder="Consistency, programme design, nutrition, accountability..."
-        />
-      </div>
+  // Pair name+email and phone+package when both visible for a tighter layout
+  const paired = new Set<string>();
+  const blocks: ReactNode[] = [];
+  for (let i = 0; i < fields.length; i++) {
+    const field = fields[i];
+    if (paired.has(field.key)) continue;
 
-      <div>
-        <label
-          htmlFor="success"
-          className="mb-2 block text-sm text-soft-silver"
-        >
-          What would success look like?
-        </label>
-        <textarea
-          id="success"
-          rows={3}
-          value={form.success}
-          onChange={(e) => update("success", e.target.value)}
-          className={`${inputCls} resize-none`}
-          placeholder="Describe the outcome you want from coaching."
-        />
-      </div>
+    const next = fields[i + 1];
+    const canPair =
+      (field.key === "name" && next?.key === "email") ||
+      (field.key === "phone" && next?.key === "packageId");
 
-      <div>
-        <label htmlFor="message" className="mb-2 block text-sm text-soft-silver">
-          Additional message
-        </label>
-        <textarea
-          id="message"
-          rows={3}
-          value={form.message}
-          onChange={(e) => update("message", e.target.value)}
-          className={`${inputCls} resize-none`}
-          placeholder="Anything else we should know?"
-        />
-      </div>
+    if (canPair && next) {
+      paired.add(field.key);
+      paired.add(next.key);
+      blocks.push(
+        <div key={`${field.key}-${next.key}`} className="grid gap-6 sm:grid-cols-2">
+          {renderField(field)}
+          {renderField(next)}
+        </div>,
+      );
+      continue;
+    }
+
+    blocks.push(renderField(field));
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6">
+      {blocks}
 
       <label className="flex items-start gap-3 rounded-xl border border-[color:var(--edge)] bg-near-black/60 px-4 py-3 text-sm text-soft-silver">
         <input
@@ -267,10 +237,7 @@ function ApplyForm() {
           className="mt-1 h-4 w-4 accent-[color:var(--accent)]"
           required
         />
-        <span>
-          I consent to NewPhase Coaching contacting me about coaching. My
-          details will not be shared.
-        </span>
+        <span>{config.consentLabel}</span>
       </label>
 
       {status === "error" && (
@@ -284,19 +251,22 @@ function ApplyForm() {
         disabled={status === "sending"}
         className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {status === "sending" ? "Sending…" : "Submit Application"}
+        {status === "sending" ? "Sending…" : config.submitLabel}
       </button>
     </form>
   );
 }
 
-export default function ApplyPage() {
+function ApplyPageContent() {
+  const { data: config } = useAsync(getApplyFormConfig, DEFAULT_APPLY_FORM);
+  const merged = mergeApplyFormConfig(config);
+
   return (
     <>
       <PageHeader
-        eyebrow="Apply"
-        title="Start your next phase"
-        intro="Tell us about you and your goals. We keep spots limited so every client gets full attention — apply and we'll be in touch."
+        eyebrow={merged.pageEyebrow}
+        title={merged.pageTitle}
+        intro={merged.pageIntro}
       />
       <section className="section-pad !pt-0">
         <div className="container-np">
@@ -305,10 +275,14 @@ export default function ApplyPage() {
               <div className="mx-auto h-96 max-w-2xl animate-pulse rounded-2xl surface" />
             }
           >
-            <ApplyForm />
+            <ApplyForm config={merged} />
           </Suspense>
         </div>
       </section>
     </>
   );
+}
+
+export default function ApplyPage() {
+  return <ApplyPageContent />;
 }

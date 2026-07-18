@@ -1,5 +1,59 @@
 // Entity + payload types for the NewPhase Coaching site & admin.
 
+export type ApplyFormFieldKey =
+  | "name"
+  | "email"
+  | "phone"
+  | "packageId"
+  | "experience"
+  | "goal"
+  | "challenge"
+  | "success"
+  | "message";
+
+export type ApplyFormFieldType =
+  | "text"
+  | "email"
+  | "tel"
+  | "textarea"
+  | "select"
+  | "package";
+
+export interface ApplyFormField {
+  key: ApplyFormFieldKey;
+  label: string;
+  placeholder?: string;
+  type: ApplyFormFieldType;
+  required: boolean;
+  visible: boolean;
+  /** Core identity fields that cannot be hidden or made optional. */
+  locked?: boolean;
+  options?: string[];
+}
+
+export interface ApplyFormConfig {
+  pageEyebrow: string;
+  pageTitle: string;
+  pageIntro: string;
+  submitLabel: string;
+  consentLabel: string;
+  successTitle: string;
+  successBody: string;
+  fields: ApplyFormField[];
+}
+
+export interface SiteSettingRow {
+  id: string;
+  key: string;
+  group: string;
+  label: string;
+  value: unknown;
+  valueType: string;
+  description?: string | null;
+  isPublic?: boolean;
+  sortOrder?: number;
+}
+
 export interface SiteSettings {
   id?: string;
   name?: string;
@@ -10,11 +64,13 @@ export interface SiteSettings {
   instagram?: string;
   tiktok?: string;
   youtube?: string;
+  facebook?: string;
   logoUrl?: string;
   heroHeadline?: string;
   heroSubline?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  applyForm?: ApplyFormConfig;
   [key: string]: unknown;
 }
 
