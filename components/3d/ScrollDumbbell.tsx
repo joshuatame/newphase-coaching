@@ -12,16 +12,14 @@ const DumbbellScene = dynamic(
 );
 
 /**
- * Vanta-style scroll experience:
- * the hex dumbbell stays large and present while continuous rotation is
- * scrubbed directly to page scroll progress (no fly-away / disappear).
+ * Vanta-style fixed canvas: hex dumbbell stays large and spins with scroll.
  */
 export function ScrollDumbbell() {
-  const wrapRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<SceneHandle | null>(null);
   const [mounted, setMounted] = useState(false);
   const [lowPoly, setLowPoly] = useState(false);
   const [webglOk, setWebglOk] = useState(true);
+  const [failed, setFailed] = useState(false);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -39,7 +37,7 @@ export function ScrollDumbbell() {
   }, []);
 
   useEffect(() => {
-    if (!mounted || reducedMotion || !webglOk) return;
+    if (!mounted || reducedMotion || !webglOk || failed) return;
     let ctx: { revert: () => void } | null = null;
     let cancelled = false;
 
@@ -62,7 +60,7 @@ export function ScrollDumbbell() {
                 return;
               }
               frames += 1;
-              if (frames > 180) {
+              if (frames > 240) {
                 reject(new Error("3D scene handle timeout"));
                 return;
               }
@@ -74,52 +72,32 @@ export function ScrollDumbbell() {
         const handle = await waitForHandle();
         if (cancelled || !handle.group) return;
         const g = handle.group;
-
-        // Hero resting pose — large, slightly right of centre (Vanta composition).
         const isMobile = window.innerWidth < 768;
-        g.position.set(isMobile ? 0.15 : 1.35, isMobile ? 0.1 : 0.05, 0);
-        g.rotation.set(0.25, -0.35, 0.15);
-        g.scale.setScalar(isMobile ? 0.92 : 1.15);
 
         ctx = gsap.context(() => {
-          // Continuous multi-axis spin scrubbed to full-page scroll — same feel as Vanta.
           gsap.to(g.rotation, {
-            y: Math.PI * 4.25,
-            x: 0.25 + Math.PI * 0.55,
-            z: 0.15 + Math.PI * 0.35,
+            y: "+=8.5",
+            x: "+=1.1",
+            z: "+=0.85",
             ease: "none",
             scrollTrigger: {
               trigger: document.documentElement,
               start: "top top",
               end: "bottom bottom",
-              scrub: 1.15,
+              scrub: 1.1,
             },
           });
 
-          // Subtle drift + scale breathing so the object feels alive while scrolling.
           gsap.to(g.position, {
-            x: isMobile ? -0.1 : 0.55,
-            y: isMobile ? 0.35 : 0.45,
-            z: isMobile ? -0.4 : -0.85,
+            x: isMobile ? 0.05 : 1.05,
+            y: isMobile ? 0.25 : 0.2,
+            z: isMobile ? -0.2 : -0.45,
             ease: "none",
             scrollTrigger: {
               trigger: document.documentElement,
               start: "top top",
               end: "bottom bottom",
-              scrub: 1.15,
-            },
-          });
-
-          gsap.to(g.scale, {
-            x: isMobile ? 0.78 : 0.88,
-            y: isMobile ? 0.78 : 0.88,
-            z: isMobile ? 0.78 : 0.88,
-            ease: "none",
-            scrollTrigger: {
-              trigger: document.documentElement,
-              start: "top top",
-              end: "bottom bottom",
-              scrub: 1.15,
+              scrub: 1.1,
             },
           });
         });
@@ -134,32 +112,56 @@ export function ScrollDumbbell() {
       cancelled = true;
       ctx?.revert();
     };
-  }, [mounted, reducedMotion, webglOk]);
+  }, [mounted, reducedMotion, webglOk, failed]);
 
-  const showScene = mounted && !reducedMotion && webglOk;
+  const showScene = mounted && !reducedMotion && webglOk && !failed;
 
   return (
     <div
-      ref={wrapRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0"
+      className="pointer-events-none fixed inset-0 z-[1] h-[100svh] w-full"
     >
+      <div className="absolute inset-0 bg-obsidian" />
       <div className="absolute inset-0 radial-fade" />
+
       {showScene && (
-        <ThreeErrorBoundary>
-          <DumbbellScene
-            lowPoly={lowPoly}
-            onReady={(h) => {
-              handleRef.current = h;
-            }}
-          />
+        <ThreeErrorBoundary
+          fallback={
+            <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[12%]">
+              <HexFallback />
+            </div>
+          }
+        >
+          <div
+            className="absolute inset-0"
+            onErrorCapture={() => setFailed(true)}
+          >
+            <DumbbellScene
+              lowPoly={lowPoly}
+              onReady={(h) => {
+                handleRef.current = h;
+              }}
+            />
+          </div>
         </ThreeErrorBoundary>
       )}
-      {mounted && (reducedMotion || !webglOk) && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-35">
-          <div className="h-44 w-44 rotate-12 rounded-[28%] border border-accent/35" />
+
+      {mounted && (reducedMotion || !webglOk || failed) && (
+        <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[12%]">
+          <HexFallback />
         </div>
       )}
+    </div>
+  );
+}
+
+function HexFallback() {
+  return (
+    <div className="relative h-56 w-56 sm:h-72 sm:w-72">
+      <div className="absolute inset-6 rotate-12 rounded-[28%] border border-accent/40 bg-gradient-to-br from-graphite via-carbon to-obsidian shadow-[0_0_60px_-10px_rgba(182,255,59,0.35)]" />
+      <div className="absolute inset-x-[28%] inset-y-[42%] rounded-full bg-soft-silver/40" />
+      <div className="absolute left-[18%] top-[38%] h-[24%] w-[16%] rotate-0 rounded-md bg-accent/80" />
+      <div className="absolute right-[18%] top-[38%] h-[24%] w-[16%] rounded-md bg-accent/80" />
     </div>
   );
 }

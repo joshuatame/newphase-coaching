@@ -8,10 +8,12 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
     <>
       <ScrollDumbbell />
       <Nav />
-      <main id="main" className="relative z-10">
+      <main id="main" className="relative z-10 bg-transparent">
         {children}
       </main>
-      <Footer />
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </>
   );
 }
