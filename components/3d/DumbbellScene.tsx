@@ -83,7 +83,7 @@ function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
         <Suspense fallback={null}>
           <Dumbbell
             spinSpeed={isMobile ? 0.24 : 0.3}
-            fitSize={isMobile ? 2.6 : 3.4}
+            fitSize={isMobile ? 3.1 : 3.8}
           />
         </Suspense>
       </group>
@@ -108,7 +108,7 @@ export function DumbbellScene({
     <Canvas
       className="absolute inset-0 h-full w-full"
       dpr={[1, lowPoly ? 1.25 : 1.6]}
-      camera={{ position: [0, 0.6, 7.5], fov: 38, near: 0.1, far: 60 }}
+      camera={{ position: [0, 0.35, 6.2], fov: 40, near: 0.1, far: 80 }}
       gl={{
         antialias: !lowPoly,
         alpha: true,

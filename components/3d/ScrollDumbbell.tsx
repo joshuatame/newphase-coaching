@@ -31,6 +31,7 @@ export function ScrollDumbbell() {
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
+    window.scrollTo(0, 0);
     setLowPoly(window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4);
     try {
       const canvas = document.createElement("canvas");
