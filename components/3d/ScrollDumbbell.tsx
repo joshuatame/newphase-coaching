@@ -197,17 +197,8 @@ export function ScrollDumbbell() {
       </div>
 
       {showScene && (
-        <ThreeErrorBoundary
-          fallback={
-            <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[10%]">
-              <LogoMark
-                glow="hero"
-                boxClassName="h-[min(50vh,240px)] w-[min(60vw,240px)] md:h-[320px] md:w-[320px]"
-              />
-            </div>
-          }
-        >
-          <div ref={canvasWrapRef} className="absolute inset-0 opacity-100">
+        <ThreeErrorBoundary fallback={null}>
+          <div ref={canvasWrapRef} className="absolute inset-0 z-[2] opacity-100">
             <DumbbellScene lowPoly={lowPoly} onReady={onReady} />
           </div>
         </ThreeErrorBoundary>
