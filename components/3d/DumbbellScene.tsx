@@ -4,7 +4,11 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { assetUrl } from "@/lib/base-path";
-import { MODEL_CYCLE_MS, SCENE_MODELS } from "@/lib/scene-models";
+import {
+  MODEL_CYCLE_MS,
+  MODEL_SLIDE_X,
+  SCENE_MODELS,
+} from "@/lib/scene-models";
 
 export interface SceneHandle {
   group: THREE.Group | null;
@@ -19,8 +23,11 @@ type PreparedModel = {
   root: THREE.Group;
 };
 
+type SlidePhase = "idle" | "out" | "in";
+
 /**
- * Imperative Three.js stage — cycles gym GLBs every few seconds.
+ * Imperative Three.js stage — cycles gym GLBs with a right-side slide.
+ * Dumbbell stays at 45°; other models stay upright and spin on Y.
  */
 export function DumbbellScene({
   lowPoly = false,
@@ -39,10 +46,13 @@ export function DumbbellScene({
     let renderer: THREE.WebGLRenderer | null = null;
     let cycleTimer: ReturnType<typeof setInterval> | null = null;
     let modelIndex = 0;
+    let pendingIndex: number | null = null;
+    let slidePhase: SlidePhase = "idle";
     const prepared: (PreparedModel | null)[] = SCENE_MODELS.map(() => null);
 
     const scene = new THREE.Scene();
     const isMobile = window.innerWidth < 768;
+    const slideX = isMobile ? MODEL_SLIDE_X * 0.85 : MODEL_SLIDE_X;
 
     const camera = new THREE.PerspectiveCamera(isMobile ? 42 : 40, 1, 0.1, 80);
     camera.position.set(0, isMobile ? 0.15 : 0.35, isMobile ? 5.2 : 6.2);
@@ -51,6 +61,7 @@ export function DumbbellScene({
     group.position.set(isMobile ? 0 : 1.15, isMobile ? -0.15 : 0.1, 0);
     scene.add(group);
 
+    // Stage handles horizontal slide; spin stays on `group` (Y axis).
     const stage = new THREE.Group();
     group.add(stage);
 
@@ -129,23 +140,32 @@ export function DumbbellScene({
 
     const spinSpeed = isMobile ? 0.24 : 0.3;
 
-    const showModel = (index: number) => {
+    const mountModel = (index: number, atX = 0) => {
       const next = prepared[index];
       if (!next) return;
       while (stage.children.length) stage.remove(stage.children[0]);
       stage.add(next.root);
+      stage.position.x = atX;
       modelIndex = index;
+    };
+
+    const beginSlideTo = (index: number) => {
+      if (slidePhase !== "idle" || index === modelIndex) return;
+      if (!prepared[index]) return;
+      pendingIndex = index;
+      slidePhase = "out";
     };
 
     const prepareGltf = (
       gltf: { scene: THREE.Object3D },
       fitSize: number,
-      rubberName?: string,
+      opts: { rubberName?: string; tiltX?: number },
     ): PreparedModel => {
       const clone = gltf.scene.clone(true);
       const wrapper = new THREE.Group();
-      const tilt = new THREE.Group();
-      tilt.rotation.x = Math.PI / 4;
+      const orient = new THREE.Group();
+      // Only the hex dumbbell is pitched; other assets stay upright.
+      orient.rotation.x = opts.tiltX ?? 0;
 
       clone.traverse((obj) => {
         const mesh = obj as THREE.Mesh;
@@ -159,7 +179,7 @@ export function DumbbellScene({
             : [];
         mats.forEach((mat) => {
           const m = mat as THREE.MeshStandardMaterial;
-          if (rubberName && m.name === rubberName) {
+          if (opts.rubberName && m.name === opts.rubberName) {
             m.color.set("#1e2229");
             m.roughness = 0.48;
             m.metalness = 0.12;
@@ -174,7 +194,6 @@ export function DumbbellScene({
             m.emissive.set("#0a0c10");
             m.emissiveIntensity = 0.1;
           }
-          // Lift near-black untextured mats so other assets stay readable
           if (m.color && !m.map) {
             const c = m.color;
             if (c.r < 0.06 && c.g < 0.06 && c.b < 0.06) {
@@ -205,8 +224,8 @@ export function DumbbellScene({
         );
       }
 
-      tilt.add(clone);
-      wrapper.add(tilt);
+      orient.add(clone);
+      wrapper.add(orient);
       return { root: wrapper };
     };
 
@@ -215,41 +234,38 @@ export function DumbbellScene({
     // @ts-expect-error intentional CSP workaround
     window.createImageBitmap = undefined;
 
-    let loadedCount = 0;
+    let cycleStarted = false;
+    const startCycle = () => {
+      if (cycleStarted || disposed) return;
+      cycleStarted = true;
+      cycleTimer = setInterval(() => {
+        if (disposed || slidePhase !== "idle") return;
+        const readyIdxs = prepared
+          .map((p, i) => (p ? i : -1))
+          .filter((i) => i >= 0);
+        if (readyIdxs.length < 2) return;
+        const curPos = readyIdxs.indexOf(modelIndex);
+        const next =
+          readyIdxs[(curPos + 1) % readyIdxs.length] ?? readyIdxs[0];
+        beginSlideTo(next);
+      }, MODEL_CYCLE_MS);
+    };
+
     SCENE_MODELS.forEach((def, index) => {
       loader.load(
         assetUrl(def.src),
         (gltf) => {
           window.createImageBitmap = prevCreateImageBitmap;
           if (disposed) return;
-          const fit =
-            isMobile
-              ? def.mobileFitSize
-              : def.fitSize;
-          prepared[index] = prepareGltf(gltf, fit, def.rubberName);
-          loadedCount += 1;
+          const fit = isMobile ? def.mobileFitSize : def.fitSize;
+          prepared[index] = prepareGltf(gltf, fit, {
+            rubberName: def.rubberName,
+            tiltX: def.tiltX ?? 0,
+          });
           if (index === 0 || stage.children.length === 0) {
-            showModel(index);
+            mountModel(index, 0);
           }
-          if (loadedCount === 1) {
-            // Start cycling once the first model is up; later models join the pool.
-            cycleTimer = setInterval(() => {
-              if (disposed) return;
-              const readyIdxs = prepared
-                .map((p, i) => (p ? i : -1))
-                .filter((i) => i >= 0);
-              if (readyIdxs.length < 2) return;
-              const curPos = readyIdxs.indexOf(modelIndex);
-              const next =
-                readyIdxs[(curPos + 1) % readyIdxs.length] ?? readyIdxs[0];
-              // Quick opacity dip via stage scale for a clean hand-off
-              stage.scale.setScalar(0.92);
-              showModel(next);
-              requestAnimationFrame(() => {
-                if (!disposed) stage.scale.setScalar(1);
-              });
-            }, MODEL_CYCLE_MS);
-          }
+          startCycle();
         },
         undefined,
         (err) => {
@@ -259,18 +275,41 @@ export function DumbbellScene({
       );
     });
 
-    let fade = 1;
     const clock = new THREE.Clock();
     const animate = () => {
       if (disposed || !renderer) return;
       frame = requestAnimationFrame(animate);
       const delta = clock.getDelta();
+
+      // Continuous Y-axis spin (upright models rotate on their vertical axis)
       group.rotation.y += delta * spinSpeed;
-      // Ease stage scale back to 1 after swaps
-      if (stage.scale.x < 0.999) {
-        fade = THREE.MathUtils.lerp(stage.scale.x, 1, 0.12);
-        stage.scale.setScalar(fade);
+
+      // Slide: out to the right, then in from further right
+      if (slidePhase === "out") {
+        stage.position.x = THREE.MathUtils.damp(
+          stage.position.x,
+          slideX,
+          7.5,
+          delta,
+        );
+        if (stage.position.x > slideX - 0.08 && pendingIndex != null) {
+          mountModel(pendingIndex, slideX);
+          pendingIndex = null;
+          slidePhase = "in";
+        }
+      } else if (slidePhase === "in") {
+        stage.position.x = THREE.MathUtils.damp(
+          stage.position.x,
+          0,
+          7.5,
+          delta,
+        );
+        if (Math.abs(stage.position.x) < 0.04) {
+          stage.position.x = 0;
+          slidePhase = "idle";
+        }
       }
+
       renderer.render(scene, camera);
     };
     animate();
