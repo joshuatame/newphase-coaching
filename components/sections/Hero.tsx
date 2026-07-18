@@ -5,10 +5,10 @@ import { MagneticButton } from "@/components/ui/MagneticButton";
 
 export function Hero() {
   return (
-    <section className="relative flex flex-col justify-start overflow-hidden pt-[4.75rem] pb-5 md:min-h-[100svh] md:justify-center md:pt-28 md:pb-0">
+    <section className="relative flex flex-col justify-start overflow-hidden pt-16 pb-5 md:min-h-[100svh] md:justify-center md:pt-28 md:pb-0">
       <div className="container-np grid items-center gap-3 md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(280px,42%)]">
         <div className="relative z-10 max-w-2xl">
-          <p className="eyebrow mb-2 flex items-center gap-3 md:mb-6">
+          <p className="eyebrow mb-6 hidden items-center gap-3 md:flex">
             <span className="h-px w-10 bg-accent" aria-hidden />
             Personalised Online Coaching
           </p>
