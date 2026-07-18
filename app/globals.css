@@ -79,10 +79,16 @@ body {
 
 .display-hero {
   font-family: var(--font-bebas), "Arial Narrow", sans-serif;
-  font-size: clamp(3.5rem, 13vw, 15rem);
+  font-size: clamp(2.85rem, 12vw, 15rem);
   line-height: 0.86;
   letter-spacing: 0.005em;
   text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .display-hero {
+    font-size: clamp(3.5rem, 13vw, 15rem);
+  }
 }
 
 .display-xl {
@@ -189,7 +195,7 @@ body {
   width: 100%;
   max-width: 80rem;
   margin-inline: auto;
-  padding-inline: 1.5rem;
+  padding-inline: 1.15rem;
 }
 @media (min-width: 768px) {
   .container-np {
@@ -198,7 +204,12 @@ body {
 }
 
 .section-pad {
-  padding-block: clamp(4.5rem, 10vw, 9rem);
+  padding-block: clamp(2.75rem, 8vw, 9rem);
+}
+@media (min-width: 768px) {
+  .section-pad {
+    padding-block: clamp(4.5rem, 10vw, 9rem);
+  }
 }
 
 /* -------------------------------- Buttons ------------------------- */

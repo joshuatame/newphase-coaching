@@ -38,32 +38,49 @@ export function DumbbellScene({
     const scene = new THREE.Scene();
     const isMobile = window.innerWidth < 768;
 
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 80);
-    camera.position.set(0, 0.35, 6.2);
+    const camera = new THREE.PerspectiveCamera(isMobile ? 42 : 40, 1, 0.1, 80);
+    camera.position.set(0, isMobile ? 0.15 : 0.35, isMobile ? 5.2 : 6.2);
 
     const group = new THREE.Group();
-    group.position.set(isMobile ? 0 : 1.15, isMobile ? 0.05 : 0.1, 0);
+    // Mobile: centred + slightly larger presence; desktop: right lane
+    group.position.set(isMobile ? 0 : 1.15, isMobile ? -0.15 : 0.1, 0);
     scene.add(group);
 
-    // Lights — bright enough without an HDR environment map
-    scene.add(new THREE.AmbientLight(0xf2f3f5, 1.1));
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x1a1d23, 0.9));
+    // Multi-light rig — enough bounce that charcoal hex plates still read
+    scene.add(new THREE.AmbientLight(0xe8eaee, 0.55));
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2e36, 1.15));
 
-    const key = new THREE.DirectionalLight(0xffffff, 2.2);
-    key.position.set(4, 6, 3);
+    const key = new THREE.DirectionalLight(0xffffff, 2.6);
+    key.position.set(5, 7, 4);
     scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xb6ff3b, 0.75);
-    fill.position.set(-4, 2, -2);
+    const fill = new THREE.DirectionalLight(0xdfe4ec, 1.35);
+    fill.position.set(-5, 3, 2);
     scene.add(fill);
 
-    const rim = new THREE.PointLight(0xffffff, 1.7, 16);
-    rim.position.set(0, 2.5, 4);
-    scene.add(rim);
+    const accent = new THREE.DirectionalLight(0xb6ff3b, 0.55);
+    accent.position.set(-3, 1.5, -3);
+    scene.add(accent);
 
-    const spot = new THREE.SpotLight(0xfff4e0, 6, 30, 0.5, 0.45);
+    const rimL = new THREE.PointLight(0xffffff, 2.2, 18);
+    rimL.position.set(-3.5, 2, 3);
+    scene.add(rimL);
+
+    const rimR = new THREE.PointLight(0xfff2d6, 2.4, 18);
+    rimR.position.set(3.5, 3, 2.5);
+    scene.add(rimR);
+
+    const front = new THREE.PointLight(0xffffff, 1.8, 14);
+    front.position.set(isMobile ? 0 : 1.2, 1.2, 5);
+    scene.add(front);
+
+    const under = new THREE.PointLight(0xb6ff3b, 0.85, 12);
+    under.position.set(isMobile ? 0 : 1.1, -2.2, 1);
+    scene.add(under);
+
+    const spot = new THREE.SpotLight(0xfff4e0, 7.5, 32, 0.55, 0.4);
     spot.position.set(5.5, 8, 4);
-    spot.target.position.set(-0.8, 0, 0);
+    spot.target.position.set(isMobile ? 0 : -0.5, 0, 0);
     scene.add(spot);
     scene.add(spot.target);
 
@@ -81,7 +98,7 @@ export function DumbbellScene({
 
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.45;
     renderer.setPixelRatio(
       Math.min(window.devicePixelRatio || 1, lowPoly ? 1.25 : 1.6),
     );
@@ -102,7 +119,7 @@ export function DumbbellScene({
 
     onReadyRef.current?.({ group });
 
-    const fitSize = isMobile ? 3.1 : 3.8;
+    const fitSize = isMobile ? 3.6 : 3.8;
     const spinSpeed = isMobile ? 0.24 : 0.3;
     const tilt = new THREE.Group();
     tilt.rotation.x = Math.PI / 4;
@@ -134,22 +151,21 @@ export function DumbbellScene({
               : [];
           mats.forEach((mat) => {
             const m = mat as THREE.MeshStandardMaterial;
-            // Hex plates — deep black rubber (keep a touch of roughness so edges still catch light)
+            // Hex plates — charcoal black that still catches multi-light rims
             if (m.name === "Rubber_Black") {
-              m.color.set("#0c0d10");
-              m.roughness = 0.62;
-              m.metalness = 0.05;
+              m.color.set("#1e2229");
+              m.roughness = 0.48;
+              m.metalness = 0.12;
               if (m.emissive) {
-                m.emissive.set("#000000");
-                m.emissiveIntensity = 0;
+                m.emissive.set("#0b0d11");
+                m.emissiveIntensity = 0.08;
               }
               m.needsUpdate = true;
               return;
             }
-            // Steel / handle — leave textures; tiny emissive so chrome doesn't go dead
             if (m.emissive) {
               m.emissive.set("#0a0c10");
-              m.emissiveIntensity = 0.12;
+              m.emissiveIntensity = 0.1;
             }
             m.needsUpdate = true;
           });

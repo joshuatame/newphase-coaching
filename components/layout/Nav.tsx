@@ -42,7 +42,7 @@ export function Nav() {
     <>
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
-          scrolled ? "glass py-3" : "bg-transparent py-5"
+          scrolled ? "glass py-2.5 md:py-3" : "bg-transparent py-3.5 md:py-5"
         }`}
       >
         <nav className="container-np flex items-center justify-between">

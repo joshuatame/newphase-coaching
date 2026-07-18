@@ -107,7 +107,7 @@ export function ScrollDumbbell() {
         gsap.set(g.scale, { x: 1, y: 1, z: 1 });
         gsap.set(g.position, {
           x: isMobile ? 0 : 1.15,
-          y: isMobile ? 0.05 : 0.1,
+          y: isMobile ? -0.15 : 0.1,
           z: 0,
         });
         if (wrap) gsap.set(wrap, { opacity: 1 });
@@ -192,7 +192,7 @@ export function ScrollDumbbell() {
       >
         <LogoMark
           glow="hero"
-          boxClassName="h-[min(55vh,280px)] w-[min(70vw,280px)] md:h-[min(58vh,420px)] md:w-[min(42vw,420px)]"
+          boxClassName="h-[min(42vh,200px)] w-[min(62vw,200px)] md:h-[min(58vh,420px)] md:w-[min(42vw,420px)]"
         />
       </div>
 
