@@ -73,9 +73,22 @@ export async function getFaqs(): Promise<Faq[]> {
 export async function submitEnquiry(
   payload: EnquiryPayload,
 ): Promise<{ ok: boolean }> {
+  const body = {
+    fullName: payload.name,
+    email: payload.email,
+    phone: payload.phone || undefined,
+    packageId: payload.packageId || undefined,
+    primaryGoal: payload.goal || undefined,
+    trainingExperience: payload.experience || undefined,
+    currentChallenge: payload.challenge || undefined,
+    successDefinition: payload.success || undefined,
+    message: payload.message || undefined,
+    consent: payload.consent === true,
+    source: payload.source || "website",
+  };
   await apiFetch<unknown>(`${NP}/enquiries`, {
     method: "POST",
-    body: { ...payload, source: payload.source || "website" },
+    body,
   });
   return { ok: true };
 }
@@ -86,12 +99,17 @@ export async function login(
   email: string,
   password: string,
 ): Promise<AuthResponse> {
-  const res = await apiFetch<AuthResponse>(`/auth/login`, {
+  const res = await apiFetch<AuthResponse & {
+    tokens?: { accessToken?: string };
+    accessToken?: string;
+  }>(`/auth/login`, {
     method: "POST",
     body: { email, password, appSlug: APP_SLUG },
   });
-  if (res?.token) setToken(res.token);
-  return res;
+  const token =
+    res?.token || res?.accessToken || res?.tokens?.accessToken || null;
+  if (token) setToken(token);
+  return { ...res, token: token || res?.token };
 }
 
 export function logout(): void {

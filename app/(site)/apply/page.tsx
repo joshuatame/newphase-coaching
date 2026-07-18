@@ -28,7 +28,10 @@ function ApplyForm() {
     packageId: "",
     goal: "",
     experience: "",
+    challenge: "",
+    success: "",
     message: "",
+    consent: false,
   });
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">(
     "idle",
@@ -48,16 +51,15 @@ function ApplyForm() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email) return;
+    if (!form.consent) {
+      setStatus("error");
+      setErrorMsg("Please confirm you consent to be contacted.");
+      return;
+    }
     setStatus("sending");
     setErrorMsg("");
-    const selectedPkg = packages.find(
-      (p) => p.slug === form.packageId || p.id === form.packageId,
-    );
     try {
-      await submitEnquiry({
-        ...form,
-        packageName: selectedPkg?.name,
-      });
+      await submitEnquiry(form);
       setStatus("done");
     } catch (err) {
       setStatus("error");
@@ -196,30 +198,80 @@ function ApplyForm() {
 
       <div>
         <label htmlFor="goal" className="mb-2 block text-sm text-soft-silver">
-          Your main goal
+          Primary goal
         </label>
         <input
           id="goal"
           value={form.goal}
           onChange={(e) => update("goal", e.target.value)}
           className={inputCls}
-          placeholder="e.g. Lose 10kg, build muscle, get stronger"
+          placeholder="e.g. Build muscle, improve body composition, get stronger"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="challenge"
+          className="mb-2 block text-sm text-soft-silver"
+        >
+          What are you struggling with?
+        </label>
+        <textarea
+          id="challenge"
+          rows={3}
+          value={form.challenge}
+          onChange={(e) => update("challenge", e.target.value)}
+          className={`${inputCls} resize-none`}
+          placeholder="Consistency, programming, nutrition, accountability..."
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="success"
+          className="mb-2 block text-sm text-soft-silver"
+        >
+          What would success look like?
+        </label>
+        <textarea
+          id="success"
+          rows={3}
+          value={form.success}
+          onChange={(e) => update("success", e.target.value)}
+          className={`${inputCls} resize-none`}
+          placeholder="Describe the outcome you want from coaching."
         />
       </div>
 
       <div>
         <label htmlFor="message" className="mb-2 block text-sm text-soft-silver">
-          Tell us more
+          Additional message
         </label>
         <textarea
           id="message"
-          rows={4}
+          rows={3}
           value={form.message}
           onChange={(e) => update("message", e.target.value)}
           className={`${inputCls} resize-none`}
-          placeholder="Where are you now, and where do you want to be?"
+          placeholder="Anything else we should know?"
         />
       </div>
+
+      <label className="flex items-start gap-3 rounded-xl border border-[color:var(--edge)] bg-near-black/60 px-4 py-3 text-sm text-soft-silver">
+        <input
+          type="checkbox"
+          checked={Boolean(form.consent)}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, consent: e.target.checked }))
+          }
+          className="mt-1 h-4 w-4 accent-[color:var(--accent)]"
+          required
+        />
+        <span>
+          I consent to NewPhase Coaching contacting me about coaching. My
+          details will not be shared.
+        </span>
+      </label>
 
       {status === "error" && (
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -234,10 +286,6 @@ function ApplyForm() {
       >
         {status === "sending" ? "Sending…" : "Submit Application"}
       </button>
-      <p className="text-center text-xs text-steel">
-        By applying you agree to be contacted about NewPhase coaching. We never
-        share your details.
-      </p>
     </form>
   );
 }

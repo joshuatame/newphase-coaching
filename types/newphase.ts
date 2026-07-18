@@ -115,8 +115,11 @@ export interface EnquiryPayload {
   packageId?: string;
   packageName?: string;
   goal?: string;
-  message?: string;
   experience?: string;
+  challenge?: string;
+  success?: string;
+  message?: string;
+  consent?: boolean;
   source?: string;
 }
 
