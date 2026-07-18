@@ -79,7 +79,7 @@ body {
 
 .display-hero {
   font-family: var(--font-bebas), "Arial Narrow", sans-serif;
-  font-size: clamp(2.85rem, 12vw, 15rem);
+  font-size: clamp(2.55rem, 11vw, 15rem);
   line-height: 0.86;
   letter-spacing: 0.005em;
   text-transform: uppercase;
@@ -204,7 +204,12 @@ body {
 }
 
 .section-pad {
-  padding-block: clamp(2.75rem, 8vw, 9rem);
+  padding-block: clamp(2rem, 6vw, 9rem);
+}
+@media (max-width: 767px) {
+  .section-pad {
+    padding-block: 2.25rem;
+  }
 }
 @media (min-width: 768px) {
   .section-pad {

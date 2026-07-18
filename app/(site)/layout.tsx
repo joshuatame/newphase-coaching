@@ -12,7 +12,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <main id="main" className="relative z-10 bg-transparent">
         {children}
       </main>
-      <div className="relative z-10 pb-16">
+      <div className="relative z-10 pb-20 md:pb-16">
         <Footer />
       </div>
       <PoweredByTame />

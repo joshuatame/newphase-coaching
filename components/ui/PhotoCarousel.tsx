@@ -122,7 +122,7 @@ export function PhotoCarousel({
           {loop.map((slide, i) => (
             <article
               key={`${slide.id}-${i}`}
-              className="relative h-[280px] w-[200px] shrink-0 overflow-hidden rounded-2xl surface sm:h-[340px] sm:w-[240px] md:h-[400px] md:w-[280px]"
+                className="relative h-[220px] w-[160px] shrink-0 overflow-hidden rounded-2xl surface sm:h-[340px] sm:w-[240px] md:h-[400px] md:w-[280px]"
             >
               {slide.href ? (
                 <Link

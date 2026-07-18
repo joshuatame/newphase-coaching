@@ -14,17 +14,17 @@ export function NewPhaseWay() {
           intro="Four principles turn effort into transformation. This is how every client gets to their next phase."
         />
 
-        <div className="mt-16 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 md:mt-16 md:grid-cols-2 md:gap-5 lg:grid-cols-4">
           {NEWPHASE_WAY.map((item, i) => (
             <Reveal key={item.title} delay={i * 90} as="article">
-              <div className="surface group h-full rounded-2xl p-8 transition-colors duration-500 hover:border-[color:var(--edge-strong)]">
-                <span className="font-display text-5xl text-graphite transition-colors duration-500 group-hover:text-accent">
+              <div className="surface group h-full rounded-2xl p-5 transition-colors duration-500 hover:border-[color:var(--edge-strong)] md:p-8">
+                <span className="font-display text-4xl text-graphite transition-colors duration-500 group-hover:text-accent md:text-5xl">
                   {item.index}
                 </span>
-                <h3 className="display-lg mt-6 text-2xl text-off-white">
+                <h3 className="display-lg mt-4 text-xl text-off-white md:mt-6 md:text-2xl">
                   {item.title}
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-steel">
+                <p className="mt-2 text-sm leading-relaxed text-steel md:mt-3">
                   {item.body}
                 </p>
               </div>

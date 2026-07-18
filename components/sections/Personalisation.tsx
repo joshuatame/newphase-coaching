@@ -7,14 +7,14 @@ import { PERSONALISATION_POINTS } from "@/lib/fallbacks";
 export function Personalisation() {
   return (
     <section className="section-pad relative">
-      <div className="container-np grid items-center gap-14 lg:grid-cols-2">
+      <div className="container-np grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
         <div>
           <SectionHeading
             eyebrow="Truly Personalised"
             title="Your programme, adjusted every single week"
             intro="No two bodies respond the same way. Your plan is written for you and re-tuned continuously against your data, recovery and results."
           />
-          <ul className="mt-10 space-y-4">
+          <ul className="mt-6 space-y-3 md:mt-10 md:space-y-4">
             {PERSONALISATION_POINTS.map((point, i) => (
               <Reveal key={point} delay={i * 70} as="li">
                 <div className="flex items-center gap-4">

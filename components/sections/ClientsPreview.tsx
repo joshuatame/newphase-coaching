@@ -32,12 +32,12 @@ export function ClientsPreview() {
       </div>
 
       <Reveal>
-        <div className="mt-10 md:mt-14">
+        <div className="mt-6 md:mt-14">
           <PhotoCarousel slides={slides} />
         </div>
       </Reveal>
 
-      <div className="container-np mt-10 md:hidden">
+      <div className="container-np mt-6 md:hidden">
         <Link href="/clients/" className="btn btn-ghost w-full">
           All Clients
         </Link>

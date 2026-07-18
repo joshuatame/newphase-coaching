@@ -30,7 +30,7 @@ export function PackagesPreview() {
           intro="Every package is built on the same personalised foundation. Pick the level of accountability that fits where you are right now."
         />
 
-        <div className={`mt-16 ${packageGridClass(sorted.length)}`}>
+        <div className={`mt-8 md:mt-16 ${packageGridClass(sorted.length)}`}>
           {sorted.map((pkg, i) => (
             <Reveal key={pkg.id} delay={Math.min(i, 5) * 90}>
               <PackageCard pkg={pkg} />
@@ -38,7 +38,7 @@ export function PackagesPreview() {
           ))}
         </div>
 
-        <div className="mt-12 text-center">
+        <div className="mt-8 text-center md:mt-12">
           <Link href="/packages/" className="btn btn-ghost">
             Compare All Packages
           </Link>
