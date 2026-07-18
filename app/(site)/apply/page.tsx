@@ -222,7 +222,7 @@ function ApplyForm() {
           value={form.challenge}
           onChange={(e) => update("challenge", e.target.value)}
           className={`${inputCls} resize-none`}
-          placeholder="Consistency, programming, nutrition, accountability..."
+          placeholder="Consistency, programme design, nutrition, accountability..."
         />
       </div>
 

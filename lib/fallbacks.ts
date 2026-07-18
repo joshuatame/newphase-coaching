@@ -28,7 +28,7 @@ export const NEWPHASE_WAY = [
 
 export const EXPERIENCE_GRID = [
   {
-    title: "1:1 Programming",
+    title: "1:1 Programmes",
     body: "Individually written training blocks updated to your recovery and progress — never a copy-paste plan.",
   },
   {

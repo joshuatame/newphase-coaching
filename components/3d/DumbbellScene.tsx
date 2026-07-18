@@ -56,10 +56,10 @@ function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
         }}
       >
         <Float
-          speed={1.2}
-          rotationIntensity={0.35}
-          floatIntensity={0.5}
-          floatingRange={[-0.08, 0.08]}
+          speed={0.85}
+          rotationIntensity={0.08}
+          floatIntensity={0.28}
+          floatingRange={[-0.05, 0.05]}
         >
           <Dumbbell lowPoly={lowPoly} />
         </Float>
