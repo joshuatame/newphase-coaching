@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { assetUrl } from "@/lib/base-path";
+import { MODEL_CYCLE_MS, SCENE_MODELS } from "@/lib/scene-models";
 
 export interface SceneHandle {
   group: THREE.Group | null;
@@ -14,9 +15,12 @@ interface DumbbellSceneProps {
   onReady?: (handle: SceneHandle) => void;
 }
 
+type PreparedModel = {
+  root: THREE.Group;
+};
+
 /**
- * Imperative Three.js scene (no R3F).
- * Avoids Next 15 duplicate-React crash: ReactCurrentBatchConfig.
+ * Imperative Three.js stage — cycles gym GLBs every few seconds.
  */
 export function DumbbellScene({
   lowPoly = false,
@@ -33,7 +37,9 @@ export function DumbbellScene({
     let disposed = false;
     let frame = 0;
     let renderer: THREE.WebGLRenderer | null = null;
-    let modelRoot: THREE.Group | null = null;
+    let cycleTimer: ReturnType<typeof setInterval> | null = null;
+    let modelIndex = 0;
+    const prepared: (PreparedModel | null)[] = SCENE_MODELS.map(() => null);
 
     const scene = new THREE.Scene();
     const isMobile = window.innerWidth < 768;
@@ -42,11 +48,13 @@ export function DumbbellScene({
     camera.position.set(0, isMobile ? 0.15 : 0.35, isMobile ? 5.2 : 6.2);
 
     const group = new THREE.Group();
-    // Mobile: centred + slightly larger presence; desktop: right lane
     group.position.set(isMobile ? 0 : 1.15, isMobile ? -0.15 : 0.1, 0);
     scene.add(group);
 
-    // Multi-light rig — enough bounce that charcoal hex plates still read
+    const stage = new THREE.Group();
+    group.add(stage);
+
+    // Multi-light rig
     scene.add(new THREE.AmbientLight(0xe8eaee, 0.55));
     scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2e36, 1.15));
 
@@ -119,94 +127,150 @@ export function DumbbellScene({
 
     onReadyRef.current?.({ group });
 
-    const fitSize = isMobile ? 3.6 : 3.8;
     const spinSpeed = isMobile ? 0.24 : 0.3;
-    const tilt = new THREE.Group();
-    tilt.rotation.x = Math.PI / 4;
-    group.add(tilt);
+
+    const showModel = (index: number) => {
+      const next = prepared[index];
+      if (!next) return;
+      while (stage.children.length) stage.remove(stage.children[0]);
+      stage.add(next.root);
+      modelIndex = index;
+    };
+
+    const prepareGltf = (
+      gltf: { scene: THREE.Object3D },
+      fitSize: number,
+      rubberName?: string,
+    ): PreparedModel => {
+      const clone = gltf.scene.clone(true);
+      const wrapper = new THREE.Group();
+      const tilt = new THREE.Group();
+      tilt.rotation.x = Math.PI / 4;
+
+      clone.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        const mats = Array.isArray(mesh.material)
+          ? mesh.material
+          : mesh.material
+            ? [mesh.material]
+            : [];
+        mats.forEach((mat) => {
+          const m = mat as THREE.MeshStandardMaterial;
+          if (rubberName && m.name === rubberName) {
+            m.color.set("#1e2229");
+            m.roughness = 0.48;
+            m.metalness = 0.12;
+            if (m.emissive) {
+              m.emissive.set("#0b0d11");
+              m.emissiveIntensity = 0.08;
+            }
+            m.needsUpdate = true;
+            return;
+          }
+          if (m.emissive) {
+            m.emissive.set("#0a0c10");
+            m.emissiveIntensity = 0.1;
+          }
+          // Lift near-black untextured mats so other assets stay readable
+          if (m.color && !m.map) {
+            const c = m.color;
+            if (c.r < 0.06 && c.g < 0.06 && c.b < 0.06) {
+              m.color.set("#2a2f38");
+              m.roughness = Math.min(m.roughness ?? 0.5, 0.55);
+            }
+          }
+          m.needsUpdate = true;
+        });
+      });
+
+      clone.position.set(0, 0, 0);
+      clone.scale.set(1, 1, 1);
+      clone.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(clone);
+      if (!box.isEmpty()) {
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+        const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+        const scale = fitSize / maxDim;
+        clone.scale.setScalar(scale);
+        clone.position.set(
+          -center.x * scale,
+          -center.y * scale,
+          -center.z * scale,
+        );
+      }
+
+      tilt.add(clone);
+      wrapper.add(tilt);
+      return { root: wrapper };
+    };
 
     const loader = new GLTFLoader();
-    // ImageBitmapLoader fetch()es blob: URLs; platform CSP connect-src may block that.
-    // Force HTML Image path (allowed via img-src blob:) so textures always load.
     const prevCreateImageBitmap = window.createImageBitmap;
     // @ts-expect-error intentional CSP workaround
     window.createImageBitmap = undefined;
 
-    loader.load(
-      assetUrl("/models/dumbbell.glb"),
-      (gltf) => {
-        window.createImageBitmap = prevCreateImageBitmap;
-        if (disposed) return;
-        const clone = gltf.scene.clone(true);
+    let loadedCount = 0;
+    SCENE_MODELS.forEach((def, index) => {
+      loader.load(
+        assetUrl(def.src),
+        (gltf) => {
+          window.createImageBitmap = prevCreateImageBitmap;
+          if (disposed) return;
+          const fit =
+            isMobile
+              ? def.mobileFitSize
+              : def.fitSize;
+          prepared[index] = prepareGltf(gltf, fit, def.rubberName);
+          loadedCount += 1;
+          if (index === 0 || stage.children.length === 0) {
+            showModel(index);
+          }
+          if (loadedCount === 1) {
+            // Start cycling once the first model is up; later models join the pool.
+            cycleTimer = setInterval(() => {
+              if (disposed) return;
+              const readyIdxs = prepared
+                .map((p, i) => (p ? i : -1))
+                .filter((i) => i >= 0);
+              if (readyIdxs.length < 2) return;
+              const curPos = readyIdxs.indexOf(modelIndex);
+              const next =
+                readyIdxs[(curPos + 1) % readyIdxs.length] ?? readyIdxs[0];
+              // Quick opacity dip via stage scale for a clean hand-off
+              stage.scale.setScalar(0.92);
+              showModel(next);
+              requestAnimationFrame(() => {
+                if (!disposed) stage.scale.setScalar(1);
+              });
+            }, MODEL_CYCLE_MS);
+          }
+        },
+        undefined,
+        (err) => {
+          window.createImageBitmap = prevCreateImageBitmap;
+          console.warn(`[NewPhase 3D] failed to load ${def.src}:`, err);
+        },
+      );
+    });
 
-        clone.traverse((obj) => {
-          const mesh = obj as THREE.Mesh;
-          if (!mesh.isMesh) return;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          const mats = Array.isArray(mesh.material)
-            ? mesh.material
-            : mesh.material
-              ? [mesh.material]
-              : [];
-          mats.forEach((mat) => {
-            const m = mat as THREE.MeshStandardMaterial;
-            // Hex plates — charcoal black that still catches multi-light rims
-            if (m.name === "Rubber_Black") {
-              m.color.set("#1e2229");
-              m.roughness = 0.48;
-              m.metalness = 0.12;
-              if (m.emissive) {
-                m.emissive.set("#0b0d11");
-                m.emissiveIntensity = 0.08;
-              }
-              m.needsUpdate = true;
-              return;
-            }
-            if (m.emissive) {
-              m.emissive.set("#0a0c10");
-              m.emissiveIntensity = 0.1;
-            }
-            m.needsUpdate = true;
-          });
-        });
-
-        clone.position.set(0, 0, 0);
-        clone.scale.set(1, 1, 1);
-        clone.updateMatrixWorld(true);
-
-        const box = new THREE.Box3().setFromObject(clone);
-        if (!box.isEmpty()) {
-          const size = new THREE.Vector3();
-          const center = new THREE.Vector3();
-          box.getSize(size);
-          box.getCenter(center);
-          const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-          const scale = fitSize / maxDim;
-          clone.scale.setScalar(scale);
-          clone.position.set(
-            -center.x * scale,
-            -center.y * scale,
-            -center.z * scale,
-          );
-        }
-
-        tilt.add(clone);
-        modelRoot = clone;
-      },
-      undefined,
-      (err) => {
-        window.createImageBitmap = prevCreateImageBitmap;
-        console.warn("[NewPhase 3D] GLB load failed:", err);
-      },
-    );
-
+    let fade = 1;
     const clock = new THREE.Clock();
     const animate = () => {
       if (disposed || !renderer) return;
       frame = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       group.rotation.y += delta * spinSpeed;
+      // Ease stage scale back to 1 after swaps
+      if (stage.scale.x < 0.999) {
+        fade = THREE.MathUtils.lerp(stage.scale.x, 1, 0.12);
+        stage.scale.setScalar(fade);
+      }
       renderer.render(scene, camera);
     };
     animate();
@@ -217,20 +281,21 @@ export function DumbbellScene({
     return () => {
       disposed = true;
       cancelAnimationFrame(frame);
+      if (cycleTimer) clearInterval(cycleTimer);
       window.removeEventListener("resize", onResize);
-      if (modelRoot) {
-        tilt.remove(modelRoot);
-        modelRoot.traverse((obj) => {
+      window.createImageBitmap = prevCreateImageBitmap;
+      prepared.forEach((p) => {
+        if (!p) return;
+        p.root.traverse((obj) => {
           const mesh = obj as THREE.Mesh;
-          if (mesh.isMesh) {
-            mesh.geometry?.dispose();
-            const mats = Array.isArray(mesh.material)
-              ? mesh.material
-              : [mesh.material];
-            mats.forEach((m) => m?.dispose?.());
-          }
+          if (!mesh.isMesh) return;
+          mesh.geometry?.dispose();
+          const mats = Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material];
+          mats.forEach((m) => m?.dispose?.());
         });
-      }
+      });
       renderer?.dispose();
       if (renderer?.domElement?.parentElement === host) {
         host.removeChild(renderer.domElement);

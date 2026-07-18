@@ -86,7 +86,6 @@ export function Footer() {
             <Link href="/admin/login/" className="hover:text-off-white">
               Admin
             </Link>
-            <span>Built by Tame Dynamics</span>
           </div>
         </div>
       </div>

@@ -131,8 +131,31 @@ export interface EnquiryPayload {
 
 export interface Enquiry extends EnquiryPayload {
   id: string;
-  status?: "new" | "contacted" | "converted" | "archived";
+  status?:
+    | "new"
+    | "contacted"
+    | "converted"
+    | "archived"
+    | "NEW"
+    | "CONTACTED"
+    | "QUALIFIED"
+    | "CONVERTED"
+    | "CLOSED";
+  fullName?: string;
+  primaryGoal?: string;
+  trainingExperience?: string;
+  currentChallenge?: string;
+  successDefinition?: string;
+  adminNotes?: string;
   createdAt?: string;
+}
+
+export interface MediaUploadResponse {
+  uploadUrl: string;
+  fileUrl: string;
+  publicUrl?: string;
+  fields?: Record<string, string>;
+  method?: string;
 }
 
 export interface DashboardStats {
@@ -153,13 +176,6 @@ export interface AuthResponse {
     name?: string;
     role?: string;
   };
-}
-
-export interface MediaUploadResponse {
-  uploadUrl: string;
-  fileUrl: string;
-  fields?: Record<string, string>;
-  method?: string;
 }
 
 export interface ApiListResponse<T> {

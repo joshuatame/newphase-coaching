@@ -7,11 +7,11 @@ import { isAuthenticated, clearToken } from "@/lib/api/client";
 
 const NAV = [
   { href: "/admin/", label: "Dashboard" },
-  { href: "/admin/clients/", label: "Clients" },
+  { href: "/admin/clients/", label: "Clients & Photos" },
+  { href: "/admin/applications/", label: "Applications" },
   { href: "/admin/testimonials/", label: "Testimonials" },
   { href: "/admin/packages/", label: "Packages" },
   { href: "/admin/content/", label: "Content" },
-  { href: "/admin/enquiries/", label: "Enquiries" },
   { href: "/admin/settings/", label: "Settings" },
 ];
 

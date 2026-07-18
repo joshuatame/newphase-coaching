@@ -25,6 +25,66 @@ import type {
 
 const NP = "/newphase-coaching";
 
+/** Map Prisma client fields → frontend Client shape. */
+function normalizeClient(raw: Client): Client {
+  const r = raw as Client & {
+    publicName?: string;
+    resultSummary?: string;
+    heroImageUrl?: string;
+    thumbnailUrl?: string;
+    sortOrder?: number;
+  };
+  return {
+    ...raw,
+    name: raw.name || r.publicName || "",
+    result: raw.result || r.resultSummary || "",
+    imageUrl: raw.imageUrl || r.heroImageUrl || r.thumbnailUrl || undefined,
+    order: raw.order ?? r.sortOrder ?? 0,
+  };
+}
+
+/** Map enquiry row → frontend Enquiry shape. */
+function normalizeEnquiry(raw: Enquiry): Enquiry {
+  const fullName = raw.fullName || raw.name;
+  const statusRaw = String(raw.status || "NEW").toLowerCase();
+  const statusMap: Record<string, Enquiry["status"]> = {
+    new: "new",
+    contacted: "contacted",
+    qualified: "contacted",
+    converted: "converted",
+    closed: "archived",
+    archived: "archived",
+  };
+  return {
+    ...raw,
+    name: fullName || "",
+    goal: raw.goal || raw.primaryGoal,
+    experience: raw.experience || raw.trainingExperience,
+    challenge: raw.challenge || raw.currentChallenge,
+    success: raw.success || raw.successDefinition,
+    status: statusMap[statusRaw] || "new",
+  };
+}
+
+/** Frontend form → backend CreateClientDto */
+function toClientDto(data: Partial<Client>) {
+  return {
+    publicName: data.name,
+    headline: data.headline,
+    summary: data.summary,
+    story: data.story,
+    category: data.category,
+    resultSummary: data.result,
+    heroImageUrl: data.imageUrl || data.afterImageUrl,
+    beforeImageUrl: data.beforeImageUrl,
+    afterImageUrl: data.afterImageUrl,
+    thumbnailUrl: data.afterImageUrl || data.imageUrl,
+    featured: data.featured,
+    published: true,
+    sortOrder: data.order,
+  };
+}
+
 /* --------------------------------- Public -------------------------------- */
 
 export async function getSite(): Promise<SiteSettings | null> {
@@ -42,12 +102,13 @@ export async function getClients(params?: {
   featured?: boolean;
 }): Promise<Client[]> {
   const res = await apiFetch<unknown>(`${NP}/clients`, { query: params });
-  return unwrapList<Client>(res);
+  return unwrapList<Client>(res).map(normalizeClient);
 }
 
 export async function getClient(idOrSlug: string): Promise<Client | null> {
   const res = await apiFetch<unknown>(`${NP}/clients/${idOrSlug}`);
-  return unwrapItem<Client>(res);
+  const item = unwrapItem<Client>(res);
+  return item ? normalizeClient(item) : null;
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {
@@ -154,17 +215,18 @@ export async function getDashboard(): Promise<DashboardStats> {
 /* --- Admin: Clients --- */
 export async function adminGetClients(): Promise<Client[]> {
   const res = await apiFetch<unknown>(`${NP}/admin/clients`, { auth: true });
-  return unwrapList<Client>(res);
+  return unwrapList<Client>(res).map(normalizeClient);
 }
 export async function adminCreateClient(
   data: Partial<Client>,
 ): Promise<Client | null> {
   const res = await apiFetch<unknown>(`${NP}/admin/clients`, {
     method: "POST",
-    body: data,
+    body: toClientDto(data),
     auth: true,
   });
-  return unwrapItem<Client>(res);
+  const item = unwrapItem<Client>(res);
+  return item ? normalizeClient(item) : null;
 }
 export async function adminUpdateClient(
   id: string,
@@ -172,10 +234,11 @@ export async function adminUpdateClient(
 ): Promise<Client | null> {
   const res = await apiFetch<unknown>(`${NP}/admin/clients/${id}`, {
     method: "PUT",
-    body: data,
+    body: toClientDto(data),
     auth: true,
   });
-  return unwrapItem<Client>(res);
+  const item = unwrapItem<Client>(res);
+  return item ? normalizeClient(item) : null;
 }
 export async function adminDeleteClient(id: string): Promise<void> {
   await apiFetch<unknown>(`${NP}/admin/clients/${id}`, {
@@ -318,38 +381,57 @@ export async function adminUpdateSite(
   return unwrapItem<SiteSettings>(res);
 }
 
-/* --- Admin: Enquiries --- */
+/* --- Admin: Enquiries / Applications --- */
 export async function adminGetEnquiries(): Promise<Enquiry[]> {
   const res = await apiFetch<unknown>(`${NP}/admin/enquiries`, { auth: true });
-  return unwrapList<Enquiry>(res);
+  return unwrapList<Enquiry>(res).map(normalizeEnquiry);
 }
 export async function adminUpdateEnquiry(
   id: string,
   data: Partial<Enquiry>,
 ): Promise<Enquiry | null> {
+  const statusMap: Record<string, string> = {
+    new: "NEW",
+    contacted: "CONTACTED",
+    converted: "CONVERTED",
+    archived: "CLOSED",
+  };
+  const body: Record<string, unknown> = {};
+  if (data.status) {
+    body.status =
+      statusMap[String(data.status).toLowerCase()] ||
+      String(data.status).toUpperCase();
+  }
+  if (data.adminNotes != null) body.adminNotes = data.adminNotes;
   const res = await apiFetch<unknown>(`${NP}/admin/enquiries/${id}`, {
-    method: "PUT",
-    body: data,
+    method: "PATCH",
+    body,
     auth: true,
   });
-  return unwrapItem<Enquiry>(res);
+  const item = unwrapItem<Enquiry>(res);
+  return item ? normalizeEnquiry(item) : null;
 }
 export async function adminDeleteEnquiry(id: string): Promise<void> {
-  await apiFetch<unknown>(`${NP}/admin/enquiries/${id}`, {
-    method: "DELETE",
-    auth: true,
-  });
+  // Backend has no DELETE for enquiries — close instead.
+  await adminUpdateEnquiry(id, { status: "archived" });
 }
 
 /* --- Admin: Media --- */
 export async function adminGetMediaUploadUrl(input: {
   fileName: string;
   contentType: string;
+  fileSizeBytes: number;
+  altText?: string;
 }): Promise<MediaUploadResponse | null> {
   const res = await apiFetch<unknown>(`${NP}/admin/media/upload-url`, {
     method: "POST",
     body: input,
     auth: true,
   });
-  return unwrapItem<MediaUploadResponse>(res);
+  const item = unwrapItem<MediaUploadResponse & { publicUrl?: string }>(res);
+  if (!item) return null;
+  return {
+    ...item,
+    fileUrl: item.fileUrl || item.publicUrl || "",
+  };
 }

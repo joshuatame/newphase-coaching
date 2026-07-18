@@ -13,6 +13,7 @@ import {
   Toggle,
   type Column,
 } from "@/components/admin/ui";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import {
   adminGetClients,
   adminCreateClient,
@@ -99,6 +100,20 @@ export default function AdminClientsPage() {
     setEditing((e) => ({ ...(e || {}), ...patch }));
 
   const columns: Column<Client>[] = [
+    {
+      key: "photo",
+      header: "Photo",
+      render: (r) =>
+        r.afterImageUrl || r.imageUrl ? (
+          <img
+            src={r.afterImageUrl || r.imageUrl}
+            alt=""
+            className="h-10 w-10 rounded-lg object-cover"
+          />
+        ) : (
+          <span className="text-steel">—</span>
+        ),
+    },
     { key: "name", header: "Name" },
     { key: "category", header: "Category", render: (r) => r.category || "—" },
     { key: "result", header: "Result", render: (r) => r.result || "—" },
@@ -110,10 +125,11 @@ export default function AdminClientsPage() {
   ];
 
   return (
-    <AdminShell title="Clients">
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-steel">
-          Manage client transformations and stories.
+    <AdminShell title="Clients & Photos">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-xl text-sm text-steel">
+          Upload before/after photos here. Published client images appear in the
+          homepage transformation carousel.
         </p>
         <AdminButton onClick={openNew}>+ New Client</AdminButton>
       </div>
@@ -130,7 +146,7 @@ export default function AdminClientsPage() {
         <DataTable
           columns={columns}
           rows={rows}
-          empty="No clients yet. Add your first transformation."
+          empty="No clients yet. Add a transformation with photos."
           actions={(row) => (
             <>
               <AdminButton variant="ghost" onClick={() => openEdit(row)}>
@@ -207,18 +223,18 @@ export default function AdminClientsPage() {
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Before image URL">
-                <TextInput
-                  value={editing.beforeImageUrl || ""}
-                  onChange={(e) => set({ beforeImageUrl: e.target.value })}
-                />
-              </Field>
-              <Field label="After image URL">
-                <TextInput
-                  value={editing.afterImageUrl || ""}
-                  onChange={(e) => set({ afterImageUrl: e.target.value })}
-                />
-              </Field>
+              <ImageUploadField
+                label="Before photo"
+                value={editing.beforeImageUrl}
+                onChange={(url) => set({ beforeImageUrl: url })}
+              />
+              <ImageUploadField
+                label="After photo"
+                value={editing.afterImageUrl}
+                onChange={(url) =>
+                  set({ afterImageUrl: url, imageUrl: url })
+                }
+              />
             </div>
             <Toggle
               checked={Boolean(editing.featured)}
