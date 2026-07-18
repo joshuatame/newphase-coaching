@@ -134,17 +134,22 @@ export function DumbbellScene({
               : [];
           mats.forEach((mat) => {
             const m = mat as THREE.MeshStandardMaterial;
-            if (m.color) {
-              const c = m.color;
-              if (c.r < 0.12 && c.g < 0.12 && c.b < 0.12) {
-                m.color.set("#5a6270");
-                m.roughness = 0.45;
-                m.metalness = 0.15;
+            // Hex plates — deep black rubber (keep a touch of roughness so edges still catch light)
+            if (m.name === "Rubber_Black") {
+              m.color.set("#0c0d10");
+              m.roughness = 0.62;
+              m.metalness = 0.05;
+              if (m.emissive) {
+                m.emissive.set("#000000");
+                m.emissiveIntensity = 0;
               }
+              m.needsUpdate = true;
+              return;
             }
+            // Steel / handle — leave textures; tiny emissive so chrome doesn't go dead
             if (m.emissive) {
-              m.emissive.set("#12151a");
-              m.emissiveIntensity = 0.25;
+              m.emissive.set("#0a0c10");
+              m.emissiveIntensity = 0.12;
             }
             m.needsUpdate = true;
           });
