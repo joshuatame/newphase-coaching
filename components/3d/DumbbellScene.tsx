@@ -1,10 +1,11 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Float } from "@react-three/drei";
-import { useRef } from "react";
+import { Environment, Float } from "@react-three/drei";
+import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import { Dumbbell } from "./Dumbbell";
+import { withBasePath } from "@/lib/base-path";
 
 export interface SceneHandle {
   group: THREE.Group | null;
@@ -17,23 +18,36 @@ interface DumbbellSceneProps {
   onReady?: (handle: SceneHandle) => void;
 }
 
+/** Same-origin HDR — required under platform CSP (no remote CDN fetches). */
+const CITY_HDR = withBasePath("/environments/city.hdr");
+const STUDIO_HDR = withBasePath("/environments/studio.hdr");
+
 function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
   const group = useRef<THREE.Group | null>(null);
   const keyLight = useRef<THREE.DirectionalLight | null>(null);
+  const envFile = lowPoly ? STUDIO_HDR : CITY_HDR;
 
   return (
     <>
-      {/* Local lighting only — no remote Environment HDR (blocked by platform CSP). */}
-      <ambientLight intensity={0.45} color="#c7cbd1" />
+      <ambientLight intensity={0.22} color="#c7cbd1" />
       <directionalLight
         ref={keyLight}
         position={[4, 6, 5]}
-        intensity={2.6}
+        intensity={1.6}
         color="#ffffff"
       />
-      <directionalLight position={[-6, -2, -4]} intensity={0.75} color="#85b82b" />
-      <pointLight position={[0, 0, 4]} intensity={1.2} color="#b6ff3b" distance={12} />
-      <pointLight position={[-3, 2, -2]} intensity={0.4} color="#ffffff" distance={10} />
+      <directionalLight position={[-6, -2, -4]} intensity={0.45} color="#85b82b" />
+      <pointLight position={[0, 0, 4]} intensity={0.7} color="#b6ff3b" distance={12} />
+
+      <Suspense fallback={null}>
+        <Environment
+          files={envFile}
+          background
+          blur={lowPoly ? 0.88 : 0.72}
+          backgroundIntensity={0.55}
+          environmentIntensity={0.95}
+        />
+      </Suspense>
 
       <group
         ref={(node) => {
@@ -64,13 +78,13 @@ export function DumbbellScene({
       camera={{ position: [0, 0, 7], fov: 38 }}
       gl={{
         antialias: !lowPoly,
-        alpha: true,
+        alpha: false,
         powerPreference: "high-performance",
         failIfMajorPerformanceCaveat: false,
       }}
-      style={{ background: "transparent" }}
+      style={{ background: "#050506" }}
       onCreated={({ gl }) => {
-        gl.setClearColor(0x000000, 0);
+        gl.setClearColor(0x050506, 1);
       }}
     >
       <Rig lowPoly={lowPoly} onReady={onReady} />
