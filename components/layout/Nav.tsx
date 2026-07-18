@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LogoMark } from "@/components/brand/LogoMark";
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -47,10 +48,13 @@ export function Nav() {
         <nav className="container-np flex items-center justify-between">
           <Link
             href="/"
-            className="font-display text-2xl tracking-wide text-off-white"
+            className="group flex items-center gap-2.5 text-off-white"
             aria-label="NewPhase Coaching home"
           >
-            NEW<span className="text-accent">PHASE</span>
+            <LogoMark boxClassName="h-9 w-9" priority />
+            <span className="font-display text-2xl tracking-wide">
+              NEW<span className="text-accent">PHASE</span>
+            </span>
           </Link>
 
           <ul className="hidden items-center gap-9 md:flex">
@@ -111,6 +115,9 @@ export function Nav() {
         }`}
       >
         <ul className="space-y-3">
+          <li className="mb-8">
+            <LogoMark boxClassName="h-16 w-16" glow="hero" />
+          </li>
           {LINKS.map((l, i) => (
             <li key={l.href}>
               <Link

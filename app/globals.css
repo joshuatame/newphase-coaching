@@ -170,6 +170,20 @@ body {
     );
 }
 
+/* Brand mark — soft white glow (drop-shadow keeps alpha edges clean) */
+.logo-glow-nav {
+  filter:
+    drop-shadow(0 0 6px rgba(245, 245, 242, 0.35))
+    drop-shadow(0 0 14px rgba(245, 245, 242, 0.18));
+}
+
+.logo-glow-hero {
+  filter:
+    drop-shadow(0 0 18px rgba(245, 245, 242, 0.28))
+    drop-shadow(0 0 48px rgba(245, 245, 242, 0.14))
+    drop-shadow(0 0 90px rgba(182, 255, 59, 0.08));
+}
+
 /* -------------------------------- Layout -------------------------- */
 .container-np {
   width: 100%;

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { SceneHandle } from "./DumbbellScene";
 import { ThreeErrorBoundary } from "./ThreeErrorBoundary";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const DumbbellScene = dynamic(
@@ -12,12 +13,14 @@ const DumbbellScene = dynamic(
 );
 
 /**
- * Site-wide fixed GLB dumbbell:
- * idle Y spin + scroll grow → zoom in → disappear
+ * Site-wide fixed stage:
+ * GLB dumbbell grows / zooms / fades on scroll,
+ * while the NP mark fades in as the hand-off.
  */
 export function ScrollDumbbell() {
   const handleRef = useRef<SceneHandle | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [lowPoly, setLowPoly] = useState(false);
   const [webglOk, setWebglOk] = useState(true);
@@ -27,12 +30,13 @@ export function ScrollDumbbell() {
   useEffect(() => {
     setMounted(true);
     if (typeof window === "undefined") return;
-    // Prefer starting at top so the model is visible on first paint.
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
     window.scrollTo(0, 0);
-    setLowPoly(window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4);
+    setLowPoly(
+      window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4,
+    );
     try {
       const canvas = document.createElement("canvas");
       const gl =
@@ -44,7 +48,7 @@ export function ScrollDumbbell() {
   }, []);
 
   useEffect(() => {
-    if (!mounted || reducedMotion || !webglOk || failed) return;
+    if (!mounted) return;
     let ctx: { revert: () => void } | null = null;
     let cancelled = false;
 
@@ -56,6 +60,24 @@ export function ScrollDumbbell() {
         const gsap = gsapMod.default || gsapMod.gsap;
         const ScrollTrigger = stMod.ScrollTrigger || stMod.default;
         gsap.registerPlugin(ScrollTrigger);
+
+        const logo = logoRef.current;
+        const isMobile = window.innerWidth < 768;
+        const canAnimate3d = !reducedMotion && webglOk && !failed;
+
+        // Logo starts quiet; blooms as the dumbbell leaves.
+        if (logo) {
+          gsap.set(logo, {
+            opacity: canAnimate3d ? 0.08 : 0.22,
+            scale: canAnimate3d ? 0.92 : 1,
+          });
+        }
+
+        if (!canAnimate3d) {
+          // Reduced-motion / fallback: keep a steady glowing mark.
+          if (logo) gsap.set(logo, { opacity: 0.28, scale: 1 });
+          return;
+        }
 
         const waitForHandle = () =>
           new Promise<SceneHandle>((resolve, reject) => {
@@ -80,9 +102,7 @@ export function ScrollDumbbell() {
         if (cancelled || !handle.group) return;
         const g = handle.group;
         const wrap = canvasWrapRef.current;
-        const isMobile = window.innerWidth < 768;
 
-        // Ensure visible starting state (guards against restored mid-scroll).
         gsap.set(g.scale, { x: 1, y: 1, z: 1 });
         gsap.set(g.position, {
           x: isMobile ? 0 : 1.15,
@@ -103,11 +123,7 @@ export function ScrollDumbbell() {
           });
 
           // 0–40%: grow
-          tl.to(
-            g.scale,
-            { x: 1.55, y: 1.55, z: 1.55, ease: "none" },
-            0,
-          ).to(
+          tl.to(g.scale, { x: 1.55, y: 1.55, z: 1.55, ease: "none" }, 0).to(
             g.position,
             {
               x: isMobile ? 0 : 0.9,
@@ -119,11 +135,7 @@ export function ScrollDumbbell() {
           );
 
           // 40–70%: larger + closer
-          tl.to(
-            g.scale,
-            { x: 2.6, y: 2.6, z: 2.6, ease: "none" },
-            0.4,
-          ).to(
+          tl.to(g.scale, { x: 2.6, y: 2.6, z: 2.6, ease: "none" }, 0.4).to(
             g.position,
             {
               x: isMobile ? 0 : 0.35,
@@ -135,11 +147,7 @@ export function ScrollDumbbell() {
           );
 
           // 70–100%: zoom through camera and fade
-          tl.to(
-            g.scale,
-            { x: 6, y: 6, z: 6, ease: "power1.in" },
-            0.7,
-          ).to(
+          tl.to(g.scale, { x: 6, y: 6, z: 6, ease: "power1.in" }, 0.7).to(
             g.position,
             { x: 0, y: 0.25, z: 9, ease: "power2.in" },
             0.7,
@@ -148,12 +156,28 @@ export function ScrollDumbbell() {
           if (wrap) {
             tl.to(wrap, { opacity: 0, ease: "power1.in" }, 0.84);
           }
+
+          // Logo hand-off: whisper → present as the dumbbell exits.
+          if (logo) {
+            tl.to(
+              logo,
+              { opacity: 0.16, scale: 0.98, ease: "none" },
+              0.55,
+            ).to(
+              logo,
+              { opacity: 0.34, scale: 1.04, ease: "power1.out" },
+              0.78,
+            );
+          }
         });
 
         ScrollTrigger.refresh();
       } catch (err) {
         console.warn("[NewPhase 3D] scroll animation skipped:", err);
         setFailed(true);
+        if (logoRef.current) {
+          logoRef.current.style.opacity = "0.3";
+        }
       }
     })();
 
@@ -172,6 +196,17 @@ export function ScrollDumbbell() {
     >
       <div className="absolute inset-0 bg-obsidian" />
       <div className="absolute inset-0 radial-fade" />
+
+      {/* Brand mark — lives behind content; blooms as the dumbbell fades */}
+      <div
+        ref={logoRef}
+        className="absolute inset-0 flex items-center justify-center opacity-[0.08] md:justify-end md:pr-[8%] lg:pr-[11%]"
+      >
+        <LogoMark
+          glow="hero"
+          boxClassName="h-[min(55vh,280px)] w-[min(70vw,280px)] md:h-[min(58vh,420px)] md:w-[min(42vw,420px)]"
+        />
+      </div>
 
       {showScene && (
         <ThreeErrorBoundary
