@@ -27,7 +27,6 @@ export function LogoMark({
     <span
       className={`relative inline-flex shrink-0 items-center justify-center ${boxClassName} ${glowClass} ${className}`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={assetUrl("/brand/newphase-mark.png")}
         alt=""
