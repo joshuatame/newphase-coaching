@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Environment, ContactShadows } from "@react-three/drei";
+import { Environment } from "@react-three/drei";
 import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { Dumbbell } from "./Dumbbell";
@@ -9,7 +9,6 @@ import { withBasePath } from "@/lib/base-path";
 
 export interface SceneHandle {
   group: THREE.Group | null;
-  spot: THREE.SpotLight | null;
 }
 
 interface DumbbellSceneProps {
@@ -30,32 +29,29 @@ function SpotlightRig() {
 
   return (
     <>
-      {/* Spot from top-right, casting down toward left */}
       <spotLight
         ref={spotRef}
-        position={[5.5, 7.5, 3.5]}
-        angle={0.42}
-        penumbra={0.55}
-        intensity={4.2}
-        color="#fff6e8"
-        distance={28}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
+        position={[5.5, 8, 4]}
+        angle={0.5}
+        penumbra={0.45}
+        intensity={5.5}
+        color="#fff4e0"
+        distance={30}
+        castShadow={false}
       />
-      <object3D ref={targetRef} position={[-1.2, -0.4, 0]} />
+      <object3D ref={targetRef} position={[-0.8, 0, 0]} />
     </>
   );
 }
 
 function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
   const group = useRef<THREE.Group | null>(null);
-  const spot = useRef<THREE.SpotLight | null>(null);
   const readySent = useRef(false);
 
   useEffect(() => {
     if (!group.current || readySent.current) return;
     readySent.current = true;
-    onReady?.({ group: group.current, spot: spot.current });
+    onReady?.({ group: group.current });
   }, [onReady]);
 
   const isMobile =
@@ -63,41 +59,44 @@ function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
 
   return (
     <>
-      <ambientLight intensity={0.28} color="#c7cbd1" />
-      <hemisphereLight args={["#dfe3ea", "#090a0c", 0.35]} />
+      <ambientLight intensity={0.75} color="#eef0f4" />
+      <hemisphereLight args={["#ffffff", "#1a1d23", 0.7]} />
       <SpotlightRig />
-      {/* Soft fill from left so the lit side reads clearly */}
-      <directionalLight position={[-4, 2, -2]} intensity={0.35} color="#85b82b" />
+      <directionalLight position={[3, 5, 2]} intensity={1.6} color="#ffffff" />
+      <directionalLight position={[-4, 1, -2]} intensity={0.55} color="#b6ff3b" />
+      <pointLight position={[0, 2, 3]} intensity={1.2} color="#ffffff" distance={12} />
 
       <Suspense fallback={null}>
         <Environment
           files={withBasePath(
             lowPoly ? "/environments/studio.hdr" : "/environments/city.hdr",
           )}
-          environmentIntensity={0.85}
+          environmentIntensity={1}
         />
       </Suspense>
 
       <group
         ref={group}
-        position={isMobile ? [0.15, -0.15, 0] : [1.4, -0.1, 0]}
-        scale={isMobile ? 0.95 : 1.15}
+        position={isMobile ? [0, 0.05, 0] : [1.15, 0.1, 0]}
+        scale={1}
       >
         <Suspense fallback={null}>
-          <Dumbbell spinSpeed={isMobile ? 0.22 : 0.28} />
+          <Dumbbell
+            spinSpeed={isMobile ? 0.24 : 0.3}
+            fitSize={isMobile ? 2.6 : 3.4}
+          />
         </Suspense>
       </group>
-
-      {!lowPoly && (
-        <ContactShadows
-          position={[0, -1.65, 0]}
-          opacity={0.45}
-          scale={14}
-          blur={2.6}
-          far={5}
-        />
-      )}
     </>
+  );
+}
+
+function LoaderMark() {
+  return (
+    <mesh position={[1.1, 0, 0]}>
+      <boxGeometry args={[0.4, 0.4, 0.4]} />
+      <meshBasicMaterial color="#b6ff3b" wireframe />
+    </mesh>
   );
 }
 
@@ -108,9 +107,8 @@ export function DumbbellScene({
   return (
     <Canvas
       className="absolute inset-0 h-full w-full"
-      dpr={[1, lowPoly ? 1.25 : 1.7]}
-      shadows
-      camera={{ position: [0, 0.35, 6.4], fov: 40, near: 0.1, far: 50 }}
+      dpr={[1, lowPoly ? 1.25 : 1.6]}
+      camera={{ position: [0, 0.6, 7.5], fov: 38, near: 0.1, far: 60 }}
       gl={{
         antialias: !lowPoly,
         alpha: true,
@@ -127,10 +125,12 @@ export function DumbbellScene({
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0);
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.05;
+        gl.toneMappingExposure = 1.2;
       }}
     >
-      <Rig lowPoly={lowPoly} onReady={onReady} />
+      <Suspense fallback={<LoaderMark />}>
+        <Rig lowPoly={lowPoly} onReady={onReady} />
+      </Suspense>
     </Canvas>
   );
 }

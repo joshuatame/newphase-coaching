@@ -13,8 +13,7 @@ const DumbbellScene = dynamic(
 
 /**
  * Site-wide fixed GLB dumbbell:
- * - idle slow Y spin (in model)
- * - scroll: grow → zoom toward camera → disappear
+ * idle Y spin + scroll grow → zoom in → disappear
  */
 export function ScrollDumbbell() {
   const handleRef = useRef<SceneHandle | null>(null);
@@ -28,6 +27,10 @@ export function ScrollDumbbell() {
   useEffect(() => {
     setMounted(true);
     if (typeof window === "undefined") return;
+    // Prefer starting at top so the model is visible on first paint.
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
     setLowPoly(window.innerWidth < 768 || (navigator.hardwareConcurrency || 8) <= 4);
     try {
       const canvas = document.createElement("canvas");
@@ -63,7 +66,7 @@ export function ScrollDumbbell() {
                 return;
               }
               frames += 1;
-              if (frames > 360) {
+              if (frames > 480) {
                 reject(new Error("3D scene handle timeout"));
                 return;
               }
@@ -78,8 +81,14 @@ export function ScrollDumbbell() {
         const wrap = canvasWrapRef.current;
         const isMobile = window.innerWidth < 768;
 
-        const startScale = isMobile ? 0.95 : 1.15;
-        g.scale.setScalar(startScale);
+        // Ensure visible starting state (guards against restored mid-scroll).
+        gsap.set(g.scale, { x: 1, y: 1, z: 1 });
+        gsap.set(g.position, {
+          x: isMobile ? 0 : 1.15,
+          y: isMobile ? 0.05 : 0.1,
+          z: 0,
+        });
+        if (wrap) gsap.set(wrap, { opacity: 1 });
 
         ctx = gsap.context(() => {
           const tl = gsap.timeline({
@@ -87,82 +96,63 @@ export function ScrollDumbbell() {
               trigger: document.documentElement,
               start: "top top",
               end: "bottom bottom",
-              scrub: 1.2,
+              scrub: 1.15,
+              invalidateOnRefresh: true,
             },
           });
 
-          // 0 → 45%: grow in place
+          // 0–40%: grow
           tl.to(
             g.scale,
-            {
-              x: startScale * 1.45,
-              y: startScale * 1.45,
-              z: startScale * 1.45,
-              ease: "none",
-            },
+            { x: 1.55, y: 1.55, z: 1.55, ease: "none" },
             0,
           ).to(
             g.position,
             {
-              x: isMobile ? 0.05 : 0.85,
-              y: isMobile ? 0.05 : 0.1,
-              z: 0.4,
+              x: isMobile ? 0 : 0.9,
+              y: 0.15,
+              z: 0.35,
               ease: "none",
             },
             0,
           );
 
-          // 45 → 75%: keep growing, pull toward camera
+          // 40–70%: larger + closer
           tl.to(
             g.scale,
-            {
-              x: startScale * 2.4,
-              y: startScale * 2.4,
-              z: startScale * 2.4,
-              ease: "none",
-            },
-            0.45,
+            { x: 2.6, y: 2.6, z: 2.6, ease: "none" },
+            0.4,
           ).to(
             g.position,
             {
               x: isMobile ? 0 : 0.35,
-              y: 0.15,
-              z: 2.2,
+              y: 0.2,
+              z: 2.4,
               ease: "none",
             },
-            0.45,
+            0.4,
           );
 
-          // 75 → 100%: zoom through camera and disappear
+          // 70–100%: zoom through camera and fade
           tl.to(
             g.scale,
-            {
-              x: startScale * 5.5,
-              y: startScale * 5.5,
-              z: startScale * 5.5,
-              ease: "power1.in",
-            },
-            0.75,
-          )
-            .to(
-              g.position,
-              {
-                x: 0,
-                y: 0.2,
-                z: 8.5,
-                ease: "power2.in",
-              },
-              0.75,
-            );
+            { x: 6, y: 6, z: 6, ease: "power1.in" },
+            0.7,
+          ).to(
+            g.position,
+            { x: 0, y: 0.25, z: 9, ease: "power2.in" },
+            0.7,
+          );
 
           if (wrap) {
-            tl.to(wrap, { opacity: 0, ease: "power1.in" }, 0.82);
+            tl.to(wrap, { opacity: 0, ease: "power1.in" }, 0.84);
           }
         });
 
         ScrollTrigger.refresh();
       } catch (err) {
         console.warn("[NewPhase 3D] scroll animation skipped:", err);
+        setFailed(true);
       }
     })();
 
@@ -177,7 +167,7 @@ export function ScrollDumbbell() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[1] h-[100svh] w-full"
+      className="pointer-events-none fixed inset-0 z-[1] h-[100svh] w-full overflow-hidden"
     >
       <div className="absolute inset-0 bg-obsidian" />
       <div className="absolute inset-0 radial-fade" />
@@ -185,12 +175,12 @@ export function ScrollDumbbell() {
       {showScene && (
         <ThreeErrorBoundary
           fallback={
-            <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[12%]">
+            <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[10%]">
               <HexFallback />
             </div>
           }
         >
-          <div ref={canvasWrapRef} className="absolute inset-0">
+          <div ref={canvasWrapRef} className="absolute inset-0 opacity-100">
             <DumbbellScene
               lowPoly={lowPoly}
               onReady={(h) => {
@@ -202,7 +192,7 @@ export function ScrollDumbbell() {
       )}
 
       {mounted && (reducedMotion || !webglOk || failed) && (
-        <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[12%]">
+        <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[10%]">
           <HexFallback />
         </div>
       )}
@@ -213,7 +203,10 @@ export function ScrollDumbbell() {
 function HexFallback() {
   return (
     <div className="relative flex h-64 w-64 items-center justify-center sm:h-80 sm:w-80">
-      <div className="h-40 w-40 rotate-45 rounded-[22%] border border-accent/45 bg-gradient-to-br from-graphite to-obsidian shadow-[0_0_50px_-12px_rgba(182,255,59,0.4)]" />
+      <div className="h-44 w-44 rotate-45 rounded-[22%] border border-accent/50 bg-gradient-to-br from-graphite to-obsidian shadow-[0_0_60px_-10px_rgba(182,255,59,0.45)]" />
+      <span className="absolute text-[0.65rem] uppercase tracking-[0.25em] text-accent">
+        NewPhase
+      </span>
     </div>
   );
 }
