@@ -55,9 +55,37 @@ export async function getTestimonials(): Promise<Testimonial[]> {
   return unwrapList<Testimonial>(res);
 }
 
+function normalizePackage(raw: Package): Package {
+  const priceLabel =
+    raw.priceLabel ||
+    raw.priceDisplay ||
+    (raw.priceCents != null
+      ? `From $${(raw.priceCents / 100).toFixed(0)}`
+      : raw.price != null
+        ? `From $${raw.price}`
+        : undefined);
+  const interval =
+    raw.interval ||
+    (raw.billingPeriod ? `/${raw.billingPeriod}` : undefined);
+  const tier = raw.tier || raw.badgeText || raw.eyebrow || undefined;
+  const features = (raw.features || []).map((f) => ({
+    label: f.label,
+    included: f.included !== false,
+    detail: f.detail,
+  }));
+  return {
+    ...raw,
+    priceLabel,
+    interval,
+    tier: tier || undefined,
+    order: raw.order ?? raw.sortOrder ?? 0,
+    features,
+  };
+}
+
 export async function getPackages(): Promise<Package[]> {
   const res = await apiFetch<unknown>(`${NP}/packages`);
-  return unwrapList<Package>(res);
+  return unwrapList<Package>(res).map(normalizePackage);
 }
 
 export async function getPackage(idOrSlug: string): Promise<Package | null> {

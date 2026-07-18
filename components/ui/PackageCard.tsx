@@ -73,29 +73,37 @@ export function PackageCard({ pkg, href = "/apply/" }: PackageCardProps) {
       </header>
 
       <div className="mt-6 flex items-baseline gap-1">
-        <span className="font-display text-5xl text-off-white">
+        <span className="font-display text-4xl text-off-white sm:text-5xl">
           {pkg.priceLabel ||
-            (pkg.price != null
-              ? `${pkg.currency || "$"}${pkg.price}`
-              : "Enquire")}
+            pkg.priceDisplay ||
+            (pkg.priceCents != null
+              ? `From $${(pkg.priceCents / 100).toFixed(0)}`
+              : pkg.price != null
+                ? `From $${pkg.price}`
+                : "Enquire")}
         </span>
-        {pkg.interval && (
+        {pkg.interval && !String(pkg.priceLabel || pkg.priceDisplay || "").includes("/") && (
           <span className="text-sm text-steel">{pkg.interval}</span>
         )}
       </div>
 
       <ul className="mt-8 flex-1 space-y-3">
-        {(pkg.features || []).map((f, i) => (
-          <li
-            key={i}
-            className={`flex items-start gap-3 text-sm ${
-              f.included ? "text-soft-silver" : "text-steel/60"
-            }`}
-          >
-            <CheckIcon on={f.included} />
-            <span>{f.label}</span>
-          </li>
-        ))}
+        {(pkg.features || []).map((f, i) => {
+          const included = f?.included !== false;
+          const label = f?.label || "";
+          if (!label) return null;
+          return (
+            <li
+              key={i}
+              className={`flex items-start gap-3 text-sm ${
+                included ? "text-soft-silver" : "text-steel/60"
+              }`}
+            >
+              <CheckIcon on={included} />
+              <span>{label}</span>
+            </li>
+          );
+        })}
       </ul>
 
       <Link

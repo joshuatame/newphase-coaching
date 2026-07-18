@@ -86,17 +86,23 @@ export interface Package {
   name: string;
   slug?: string;
   tier?: string;
+  eyebrow?: string;
+  badgeText?: string | null;
   tagline?: string;
   description?: string;
   price?: number;
+  priceCents?: number | null;
   priceLabel?: string;
+  priceDisplay?: string | null;
   interval?: string;
+  billingPeriod?: string | null;
   currency?: string;
   features?: PackageFeature[];
   highlights?: string[];
   featured?: boolean;
   ctaLabel?: string;
   order?: number;
+  sortOrder?: number;
   createdAt?: string;
 }
 
