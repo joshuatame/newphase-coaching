@@ -109,9 +109,16 @@ export function DumbbellScene({
     group.add(tilt);
 
     const loader = new GLTFLoader();
+    // ImageBitmapLoader fetch()es blob: URLs; platform CSP connect-src may block that.
+    // Force HTML Image path (allowed via img-src blob:) so textures always load.
+    const prevCreateImageBitmap = window.createImageBitmap;
+    // @ts-expect-error intentional CSP workaround
+    window.createImageBitmap = undefined;
+
     loader.load(
       assetUrl("/models/dumbbell.glb"),
       (gltf) => {
+        window.createImageBitmap = prevCreateImageBitmap;
         if (disposed) return;
         const clone = gltf.scene.clone(true);
 
@@ -168,6 +175,7 @@ export function DumbbellScene({
       },
       undefined,
       (err) => {
+        window.createImageBitmap = prevCreateImageBitmap;
         console.warn("[NewPhase 3D] GLB load failed:", err);
       },
     );
