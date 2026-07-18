@@ -12,10 +12,13 @@ const DumbbellScene = dynamic(
 );
 
 /**
- * Vanta-style fixed canvas: hex dumbbell stays large and spins with scroll.
+ * Site-wide fixed GLB dumbbell:
+ * - idle slow Y spin (in model)
+ * - scroll: grow → zoom toward camera → disappear
  */
 export function ScrollDumbbell() {
   const handleRef = useRef<SceneHandle | null>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [lowPoly, setLowPoly] = useState(false);
   const [webglOk, setWebglOk] = useState(true);
@@ -60,7 +63,7 @@ export function ScrollDumbbell() {
                 return;
               }
               frames += 1;
-              if (frames > 240) {
+              if (frames > 360) {
                 reject(new Error("3D scene handle timeout"));
                 return;
               }
@@ -72,34 +75,89 @@ export function ScrollDumbbell() {
         const handle = await waitForHandle();
         if (cancelled || !handle.group) return;
         const g = handle.group;
+        const wrap = canvasWrapRef.current;
         const isMobile = window.innerWidth < 768;
 
+        const startScale = isMobile ? 0.95 : 1.15;
+        g.scale.setScalar(startScale);
+
         ctx = gsap.context(() => {
-          gsap.to(g.rotation, {
-            y: "+=8.5",
-            x: "+=1.1",
-            z: "+=0.85",
-            ease: "none",
+          const tl = gsap.timeline({
             scrollTrigger: {
               trigger: document.documentElement,
               start: "top top",
               end: "bottom bottom",
-              scrub: 1.1,
+              scrub: 1.2,
             },
           });
 
-          gsap.to(g.position, {
-            x: isMobile ? 0.05 : 1.05,
-            y: isMobile ? 0.25 : 0.2,
-            z: isMobile ? -0.2 : -0.45,
-            ease: "none",
-            scrollTrigger: {
-              trigger: document.documentElement,
-              start: "top top",
-              end: "bottom bottom",
-              scrub: 1.1,
+          // 0 → 45%: grow in place
+          tl.to(
+            g.scale,
+            {
+              x: startScale * 1.45,
+              y: startScale * 1.45,
+              z: startScale * 1.45,
+              ease: "none",
             },
-          });
+            0,
+          ).to(
+            g.position,
+            {
+              x: isMobile ? 0.05 : 0.85,
+              y: isMobile ? 0.05 : 0.1,
+              z: 0.4,
+              ease: "none",
+            },
+            0,
+          );
+
+          // 45 → 75%: keep growing, pull toward camera
+          tl.to(
+            g.scale,
+            {
+              x: startScale * 2.4,
+              y: startScale * 2.4,
+              z: startScale * 2.4,
+              ease: "none",
+            },
+            0.45,
+          ).to(
+            g.position,
+            {
+              x: isMobile ? 0 : 0.35,
+              y: 0.15,
+              z: 2.2,
+              ease: "none",
+            },
+            0.45,
+          );
+
+          // 75 → 100%: zoom through camera and disappear
+          tl.to(
+            g.scale,
+            {
+              x: startScale * 5.5,
+              y: startScale * 5.5,
+              z: startScale * 5.5,
+              ease: "power1.in",
+            },
+            0.75,
+          )
+            .to(
+              g.position,
+              {
+                x: 0,
+                y: 0.2,
+                z: 8.5,
+                ease: "power2.in",
+              },
+              0.75,
+            );
+
+          if (wrap) {
+            tl.to(wrap, { opacity: 0, ease: "power1.in" }, 0.82);
+          }
         });
 
         ScrollTrigger.refresh();
@@ -132,10 +190,7 @@ export function ScrollDumbbell() {
             </div>
           }
         >
-          <div
-            className="absolute inset-0"
-            onErrorCapture={() => setFailed(true)}
-          >
+          <div ref={canvasWrapRef} className="absolute inset-0">
             <DumbbellScene
               lowPoly={lowPoly}
               onReady={(h) => {
@@ -157,11 +212,8 @@ export function ScrollDumbbell() {
 
 function HexFallback() {
   return (
-    <div className="relative h-56 w-56 sm:h-72 sm:w-72">
-      <div className="absolute inset-6 rotate-12 rounded-[28%] border border-accent/40 bg-gradient-to-br from-graphite via-carbon to-obsidian shadow-[0_0_60px_-10px_rgba(182,255,59,0.35)]" />
-      <div className="absolute inset-x-[28%] inset-y-[42%] rounded-full bg-soft-silver/40" />
-      <div className="absolute left-[18%] top-[38%] h-[24%] w-[16%] rotate-0 rounded-md bg-accent/80" />
-      <div className="absolute right-[18%] top-[38%] h-[24%] w-[16%] rounded-md bg-accent/80" />
+    <div className="relative flex h-64 w-64 items-center justify-center sm:h-80 sm:w-80">
+      <div className="h-40 w-40 rotate-45 rounded-[22%] border border-accent/45 bg-gradient-to-br from-graphite to-obsidian shadow-[0_0_50px_-12px_rgba(182,255,59,0.4)]" />
     </div>
   );
 }
