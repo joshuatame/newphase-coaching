@@ -7,6 +7,7 @@ import {
   DataTable,
   Field,
   Modal,
+  Select,
   TextArea,
   TextInput,
   Toggle,
@@ -20,23 +21,57 @@ import {
 } from "@/lib/api/newphase";
 import type { Package, PackageFeature } from "@/types/newphase";
 
-const EMPTY: Partial<Package> = {
+const BILLING_OPTIONS = [
+  { value: "week", label: "per week" },
+  { value: "fortnight", label: "per fortnight" },
+  { value: "month", label: "per month" },
+  { value: "quarter", label: "per quarter" },
+  { value: "year", label: "per year" },
+  { value: "once", label: "one-off" },
+  { value: "custom", label: "custom / enquire" },
+];
+
+type PackageForm = Partial<Package> & {
+  priceDollars?: string;
+  published?: boolean;
+};
+
+const EMPTY: PackageForm = {
   name: "",
   tier: "",
   tagline: "",
-  priceLabel: "",
-  interval: "/mo",
+  description: "",
+  priceDollars: "",
+  priceDisplay: "",
+  billingPeriod: "month",
   ctaLabel: "Get Started",
   featured: false,
+  published: true,
   order: 0,
   features: [{ label: "", included: true }],
 };
+
+function toForm(pkg: Package): PackageForm {
+  return {
+    ...pkg,
+    priceDollars:
+      pkg.priceCents != null ? String(pkg.priceCents / 100) : "",
+    priceDisplay: pkg.priceDisplay || pkg.priceLabel || "",
+    billingPeriod:
+      pkg.billingPeriod ||
+      (pkg.interval ? String(pkg.interval).replace(/^\//, "") : "month"),
+    published: (pkg as PackageForm).published !== false,
+    features: pkg.features?.length
+      ? pkg.features.map((f) => ({ ...f }))
+      : [{ label: "", included: true }],
+  };
+}
 
 export default function AdminPackagesPage() {
   const [rows, setRows] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Partial<Package> | null>(null);
+  const [editing, setEditing] = useState<PackageForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,6 +79,8 @@ export default function AdminPackagesPage() {
     setLoading(true);
     try {
       setRows(await adminGetPackages());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load packages");
     } finally {
       setLoading(false);
     }
@@ -52,7 +89,7 @@ export default function AdminPackagesPage() {
     load();
   }, []);
 
-  const set = (patch: Partial<Package>) =>
+  const set = (patch: PackageForm) =>
     setEditing((e) => ({ ...(e || {}), ...patch }));
 
   const setFeature = (i: number, patch: Partial<PackageFeature>) =>
@@ -74,17 +111,43 @@ export default function AdminPackagesPage() {
       features: (e?.features || []).filter((_, idx) => idx !== i),
     }));
 
+  const moveFeature = (i: number, dir: -1 | 1) =>
+    setEditing((e) => {
+      const features = [...(e?.features || [])];
+      const j = i + dir;
+      if (j < 0 || j >= features.length) return e || {};
+      [features[i], features[j]] = [features[j], features[i]];
+      return { ...(e || {}), features };
+    });
+
   const save = async () => {
-    if (!editing?.name) {
+    if (!editing?.name?.trim()) {
       setError("Name is required.");
       return;
     }
     setSaving(true);
     setError("");
-    const payload = {
+
+    const dollars = editing.priceDollars?.trim();
+    const price =
+      dollars && !Number.isNaN(Number(dollars))
+        ? Number(dollars)
+        : undefined;
+
+    const payload: Partial<Package> = {
       ...editing,
-      features: (editing.features || []).filter((f) => f.label.trim()),
+      price,
+      priceCents:
+        price != null ? Math.round(price * 100) : editing.priceCents,
+      priceLabel: editing.priceDisplay || undefined,
+      priceDisplay: editing.priceDisplay || undefined,
+      order: Number(editing.order ?? 0),
+      features: (editing.features || [])
+        .map((f, i) => ({ ...f, sortOrder: i }))
+        .filter((f) => f.label.trim()),
+      published: editing.published !== false,
     };
+
     try {
       if (editing.id) await adminUpdatePackage(editing.id, payload);
       else await adminCreatePackage(payload);
@@ -98,27 +161,60 @@ export default function AdminPackagesPage() {
   };
 
   const remove = async (p: Package) => {
-    if (!confirm(`Delete package "${p.name}"?`)) return;
+    if (!confirm(`Delete package "${p.name}"? This cannot be undone.`)) return;
     await adminDeletePackage(p.id).catch(() => {});
     await load();
   };
 
   const columns: Column<Package>[] = [
     { key: "name", header: "Name" },
-    { key: "priceLabel", header: "Price", render: (r) => `${r.priceLabel || "—"}${r.interval || ""}` },
-    { key: "order", header: "Order", render: (r) => r.order ?? 0 },
-    { key: "featured", header: "Featured", render: (r) => (r.featured ? "Yes" : "No") },
+    {
+      key: "price",
+      header: "Price",
+      render: (r) => {
+        const display =
+          r.priceDisplay ||
+          r.priceLabel ||
+          (r.priceCents != null
+            ? `$${(r.priceCents / 100).toFixed(r.priceCents % 100 === 0 ? 0 : 2)}`
+            : "—");
+        const period = r.billingPeriod ? ` / ${r.billingPeriod}` : "";
+        return `${display}${period}`;
+      },
+    },
+    {
+      key: "published",
+      header: "Live",
+      render: (r) =>
+        (r as PackageForm).published === false ? (
+          <span className="text-steel">Draft</span>
+        ) : (
+          <span className="text-accent">Published</span>
+        ),
+    },
+    { key: "order", header: "Order", render: (r) => r.order ?? r.sortOrder ?? 0 },
+    {
+      key: "featured",
+      header: "Featured",
+      render: (r) => (r.featured ? "Yes" : "No"),
+    },
   ];
 
   return (
     <AdminShell title="Packages">
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-steel">
-          Manage coaching packages, pricing and features.
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-xl text-sm text-steel">
+          Create as many packages as you need. Set AUD pricing, billing period,
+          features, and publish when ready. Sort order controls left-to-right
+          display.
         </p>
         <AdminButton
           onClick={() => {
-            setEditing({ ...EMPTY, features: [{ label: "", included: true }] });
+            setEditing({
+              ...EMPTY,
+              order: rows.length,
+              features: [{ label: "", included: true }],
+            });
             setError("");
             setModalOpen(true);
           }}
@@ -127,24 +223,27 @@ export default function AdminPackagesPage() {
         </AdminButton>
       </div>
 
+      {error && !modalOpen && (
+        <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          {error}
+        </p>
+      )}
+
       {loading ? (
         <div className="h-64 animate-pulse rounded-2xl surface" />
       ) : (
         <DataTable
           columns={columns}
-          rows={rows}
-          empty="No packages yet."
+          rows={[...rows].sort(
+            (a, b) => (a.order ?? a.sortOrder ?? 0) - (b.order ?? b.sortOrder ?? 0),
+          )}
+          empty="No packages yet. Add your first coaching package."
           actions={(row) => (
             <>
               <AdminButton
                 variant="ghost"
                 onClick={() => {
-                  setEditing({
-                    ...row,
-                    features: row.features?.length
-                      ? row.features
-                      : [{ label: "", included: true }],
-                  });
+                  setEditing(toForm(row));
                   setError("");
                   setModalOpen(true);
                 }}
@@ -169,7 +268,7 @@ export default function AdminPackagesPage() {
               Cancel
             </AdminButton>
             <AdminButton onClick={save} disabled={saving}>
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving…" : "Save package"}
             </AdminButton>
           </>
         }
@@ -181,14 +280,16 @@ export default function AdminPackagesPage() {
                 {error}
               </p>
             )}
+
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name">
+              <Field label="Package name">
                 <TextInput
                   value={editing.name || ""}
                   onChange={(e) => set({ name: e.target.value })}
+                  placeholder="e.g. Performance"
                 />
               </Field>
-              <Field label="Tier label">
+              <Field label="Badge / tier">
                 <TextInput
                   value={editing.tier || ""}
                   onChange={(e) => set({ tier: e.target.value })}
@@ -196,29 +297,48 @@ export default function AdminPackagesPage() {
                 />
               </Field>
             </div>
+
             <Field label="Tagline">
-              <TextArea
-                rows={2}
+              <TextInput
                 value={editing.tagline || ""}
                 onChange={(e) => set({ tagline: e.target.value })}
+                placeholder="Short line under the name"
               />
             </Field>
+
+            <Field label="Description">
+              <TextArea
+                rows={3}
+                value={editing.description || ""}
+                onChange={(e) => set({ description: e.target.value })}
+                placeholder="Who this package is for and what they get"
+              />
+            </Field>
+
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Price label">
+              <Field label="Price (AUD)">
                 <TextInput
-                  value={editing.priceLabel || ""}
-                  onChange={(e) => set({ priceLabel: e.target.value })}
-                  placeholder="From $299"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editing.priceDollars || ""}
+                  onChange={(e) => set({ priceDollars: e.target.value })}
+                  placeholder="299"
                 />
               </Field>
-              <Field label="Interval">
-                <TextInput
-                  value={editing.interval || ""}
-                  onChange={(e) => set({ interval: e.target.value })}
-                  placeholder="/mo"
-                />
+              <Field label="Billing period">
+                <Select
+                  value={editing.billingPeriod || "month"}
+                  onChange={(e) => set({ billingPeriod: e.target.value })}
+                >
+                  {BILLING_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Select>
               </Field>
-              <Field label="Order">
+              <Field label="Sort order">
                 <TextInput
                   type="number"
                   value={String(editing.order ?? 0)}
@@ -226,7 +346,16 @@ export default function AdminPackagesPage() {
                 />
               </Field>
             </div>
-            <Field label="CTA label">
+
+            <Field label="Custom price display (optional)">
+              <TextInput
+                value={editing.priceDisplay || ""}
+                onChange={(e) => set({ priceDisplay: e.target.value })}
+                placeholder='e.g. "From $299" — leave blank to use price above'
+              />
+            </Field>
+
+            <Field label="CTA button label">
               <TextInput
                 value={editing.ctaLabel || ""}
                 onChange={(e) => set({ ctaLabel: e.target.value })}
@@ -248,15 +377,19 @@ export default function AdminPackagesPage() {
               </div>
               <div className="space-y-2">
                 {(editing.features || []).map((f, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={f.id || i} className="flex items-center gap-2">
                     <TextInput
                       value={f.label}
-                      onChange={(e) => setFeature(i, { label: e.target.value })}
+                      onChange={(e) =>
+                        setFeature(i, { label: e.target.value })
+                      }
                       placeholder="Feature description"
                     />
                     <button
                       type="button"
-                      onClick={() => setFeature(i, { included: !f.included })}
+                      onClick={() =>
+                        setFeature(i, { included: !f.included })
+                      }
                       className={`flex-none rounded-lg px-3 py-2 text-xs ${
                         f.included
                           ? "bg-accent/15 text-accent"
@@ -264,6 +397,22 @@ export default function AdminPackagesPage() {
                       }`}
                     >
                       {f.included ? "Included" : "Excluded"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveFeature(i, -1)}
+                      className="flex-none text-steel hover:text-off-white"
+                      aria-label="Move up"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveFeature(i, 1)}
+                      className="flex-none text-steel hover:text-off-white"
+                      aria-label="Move down"
+                    >
+                      ↓
                     </button>
                     <button
                       type="button"
@@ -278,11 +427,18 @@ export default function AdminPackagesPage() {
               </div>
             </div>
 
-            <Toggle
-              checked={Boolean(editing.featured)}
-              onChange={(v) => set({ featured: v })}
-              label="Highlight as featured package"
-            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-8">
+              <Toggle
+                checked={Boolean(editing.featured)}
+                onChange={(v) => set({ featured: v })}
+                label="Highlight as featured"
+              />
+              <Toggle
+                checked={editing.published !== false}
+                onChange={(v) => set({ published: v })}
+                label="Published on website"
+              />
+            </div>
           </div>
         )}
       </Modal>

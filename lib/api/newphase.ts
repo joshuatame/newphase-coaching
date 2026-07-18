@@ -18,6 +18,7 @@ import type {
   Faq,
   MediaUploadResponse,
   Package,
+  PackageFeature,
   Section,
   SiteSettings,
   Testimonial,
@@ -121,18 +122,21 @@ function normalizePackage(raw: Package): Package {
     raw.priceLabel ||
     raw.priceDisplay ||
     (raw.priceCents != null
-      ? `From $${(raw.priceCents / 100).toFixed(0)}`
+      ? `$${(raw.priceCents / 100).toFixed(raw.priceCents % 100 === 0 ? 0 : 2)}`
       : raw.price != null
-        ? `From $${raw.price}`
+        ? `$${raw.price}`
         : undefined);
   const interval =
     raw.interval ||
     (raw.billingPeriod ? `/${raw.billingPeriod}` : undefined);
   const tier = raw.tier || raw.badgeText || raw.eyebrow || undefined;
-  const features = (raw.features || []).map((f) => ({
+  const features = (raw.features || []).map((f, i) => ({
+    id: f.id,
     label: f.label,
     included: f.included !== false,
-    detail: f.detail,
+    detail: f.detail || f.description,
+    description: f.description || f.detail,
+    sortOrder: f.sortOrder ?? i,
   }));
   return {
     ...raw,
@@ -144,6 +148,50 @@ function normalizePackage(raw: Package): Package {
   };
 }
 
+/** Frontend package form → backend Create/UpdatePackageDto */
+function toPackageDto(data: Partial<Package>) {
+  const dollars = data.price;
+  let priceCents = data.priceCents;
+  if (priceCents == null && dollars != null && !Number.isNaN(Number(dollars))) {
+    priceCents = Math.round(Number(dollars) * 100);
+  }
+  // If admin typed a display like "From $299", keep it; else derive from cents
+  const priceDisplay =
+    data.priceDisplay ||
+    data.priceLabel ||
+    (priceCents != null
+      ? `$${(priceCents / 100).toFixed(priceCents % 100 === 0 ? 0 : 2)}`
+      : undefined);
+
+  const billingPeriod = (
+    data.billingPeriod ||
+    (data.interval ? String(data.interval).replace(/^\//, "") : undefined) ||
+    undefined
+  );
+
+  return {
+    name: data.name,
+    slug: data.slug,
+    eyebrow: data.eyebrow || data.tier,
+    tagline: data.tagline,
+    description:
+      data.description ||
+      data.tagline ||
+      `${data.name || "Package"} coaching programme`,
+    priceCents: priceCents ?? undefined,
+    priceDisplay,
+    currency: data.currency || "AUD",
+    billingPeriod,
+    badgeText: data.badgeText || data.tier,
+    ctaLabel: data.ctaLabel || "Get Started",
+    ctaHref: "/apply/",
+    featured: data.featured ?? false,
+    active: true,
+    published: data.published !== false,
+    sortOrder: data.order ?? data.sortOrder ?? 0,
+  };
+}
+
 export async function getPackages(): Promise<Package[]> {
   const res = await apiFetch<unknown>(`${NP}/packages`);
   return unwrapList<Package>(res).map(normalizePackage);
@@ -151,7 +199,8 @@ export async function getPackages(): Promise<Package[]> {
 
 export async function getPackage(idOrSlug: string): Promise<Package | null> {
   const res = await apiFetch<unknown>(`${NP}/packages/${idOrSlug}`);
-  return unwrapItem<Package>(res);
+  const item = unwrapItem<Package>(res);
+  return item ? normalizePackage(item) : null;
 }
 
 export async function getFaqs(): Promise<Faq[]> {
@@ -285,29 +334,112 @@ export async function adminDeleteTestimonial(id: string): Promise<void> {
 /* --- Admin: Packages --- */
 export async function adminGetPackages(): Promise<Package[]> {
   const res = await apiFetch<unknown>(`${NP}/admin/packages`, { auth: true });
-  return unwrapList<Package>(res);
+  return unwrapList<Package>(res).map(normalizePackage);
 }
+
+async function syncPackageFeatures(
+  packageId: string,
+  features: PackageFeature[],
+) {
+  const existingRes = await apiFetch<unknown>(
+    `${NP}/admin/package-features`,
+    { query: { packageId }, auth: true },
+  );
+  const existing = unwrapList<PackageFeature>(existingRes);
+  const keptIds = new Set(
+    features.map((f) => f.id).filter(Boolean) as string[],
+  );
+
+  // Delete removed features
+  await Promise.all(
+    existing
+      .filter((f) => f.id && !keptIds.has(f.id))
+      .map((f) =>
+        apiFetch<unknown>(`${NP}/admin/package-features/${f.id}`, {
+          method: "DELETE",
+          auth: true,
+        }),
+      ),
+  );
+
+  // Upsert current features
+  for (let i = 0; i < features.length; i++) {
+    const f = features[i];
+    const label = f.label?.trim();
+    if (!label) continue;
+    const body = {
+      packageId,
+      label,
+      description: f.detail || f.description,
+      included: f.included !== false,
+      sortOrder: f.sortOrder ?? i,
+    };
+    if (f.id && existing.some((e) => e.id === f.id)) {
+      await apiFetch<unknown>(`${NP}/admin/package-features/${f.id}`, {
+        method: "PUT",
+        body,
+        auth: true,
+      });
+    } else {
+      await apiFetch<unknown>(`${NP}/admin/package-features`, {
+        method: "POST",
+        body,
+        auth: true,
+      });
+    }
+  }
+}
+
 export async function adminCreatePackage(
   data: Partial<Package>,
 ): Promise<Package | null> {
   const res = await apiFetch<unknown>(`${NP}/admin/packages`, {
     method: "POST",
-    body: data,
+    body: toPackageDto(data),
     auth: true,
   });
-  return unwrapItem<Package>(res);
+  const created = unwrapItem<Package>(res);
+  if (!created?.id) return created ? normalizePackage(created) : null;
+
+  const features = (data.features || []).filter((f) => f.label?.trim());
+  if (features.length) {
+    await syncPackageFeatures(created.id, features);
+  }
+  const refreshed = await apiFetch<unknown>(
+    `${NP}/admin/packages/${created.id}`,
+    { auth: true },
+  );
+  const item = unwrapItem<Package>(refreshed);
+  return item ? normalizePackage(item) : normalizePackage(created);
 }
+
 export async function adminUpdatePackage(
   id: string,
   data: Partial<Package>,
 ): Promise<Package | null> {
   const res = await apiFetch<unknown>(`${NP}/admin/packages/${id}`, {
     method: "PUT",
-    body: data,
+    body: toPackageDto(data),
     auth: true,
   });
-  return unwrapItem<Package>(res);
+  const updated = unwrapItem<Package>(res);
+  if (data.features) {
+    await syncPackageFeatures(
+      id,
+      data.features.filter((f) => f.label?.trim()),
+    );
+  }
+  const refreshed = await apiFetch<unknown>(`${NP}/admin/packages/${id}`, {
+    auth: true,
+  });
+  const item = unwrapItem<Package>(refreshed);
+  return item
+    ? normalizePackage(item)
+    : updated
+      ? normalizePackage(updated)
+      : null;
 }
+
 export async function adminDeletePackage(id: string): Promise<void> {
   await apiFetch<unknown>(`${NP}/admin/packages/${id}`, {
     method: "DELETE",

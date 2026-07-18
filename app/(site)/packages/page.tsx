@@ -9,6 +9,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import { useAsync } from "@/lib/useAsync";
 import { getPackages, getFaqs } from "@/lib/api/newphase";
 import { FALLBACK_PACKAGES, FALLBACK_FAQS } from "@/lib/fallbacks";
+import { packageGridClass } from "@/lib/package-grid";
 import type { Faq, Package } from "@/types/newphase";
 
 function useMatrix(packages: Package[]) {
@@ -43,7 +44,7 @@ export default function PackagesPage() {
 
       {/* Cards */}
       <section className="section-pad !pt-0">
-        <div className="container-np grid gap-6 lg:grid-cols-3">
+        <div className={`container-np ${packageGridClass(sorted.length)}`}>
           {sorted.map((pkg, i) => (
             <Reveal key={pkg.id} delay={i * 90}>
               <PackageCard pkg={pkg} />

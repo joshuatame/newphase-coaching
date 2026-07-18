@@ -7,6 +7,7 @@ import { PackageCard } from "@/components/ui/PackageCard";
 import { useAsync } from "@/lib/useAsync";
 import { getPackages } from "@/lib/api/newphase";
 import { FALLBACK_PACKAGES } from "@/lib/fallbacks";
+import { packageGridClass } from "@/lib/package-grid";
 import type { Package } from "@/types/newphase";
 
 export function PackagesPreview() {
@@ -15,9 +16,9 @@ export function PackagesPreview() {
     FALLBACK_PACKAGES,
   );
 
-  const sorted = [...packages]
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .slice(0, 3);
+  const sorted = [...packages].sort(
+    (a, b) => (a.order ?? a.sortOrder ?? 0) - (b.order ?? b.sortOrder ?? 0),
+  );
 
   return (
     <section className="section-pad relative">
@@ -29,9 +30,9 @@ export function PackagesPreview() {
           intro="Every package is built on the same personalised foundation. Pick the level of accountability that fits where you are right now."
         />
 
-        <div className="mt-16 grid gap-6 lg:grid-cols-3">
+        <div className={`mt-16 ${packageGridClass(sorted.length)}`}>
           {sorted.map((pkg, i) => (
-            <Reveal key={pkg.id} delay={i * 90}>
+            <Reveal key={pkg.id} delay={Math.min(i, 5) * 90}>
               <PackageCard pkg={pkg} />
             </Reveal>
           ))}

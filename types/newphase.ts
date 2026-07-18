@@ -76,9 +76,12 @@ export interface Testimonial {
 }
 
 export interface PackageFeature {
+  id?: string;
   label: string;
   included: boolean;
   detail?: string;
+  description?: string;
+  sortOrder?: number;
 }
 
 export interface Package {
@@ -100,6 +103,7 @@ export interface Package {
   features?: PackageFeature[];
   highlights?: string[];
   featured?: boolean;
+  published?: boolean;
   ctaLabel?: string;
   order?: number;
   sortOrder?: number;
