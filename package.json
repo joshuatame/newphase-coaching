@@ -1,0 +1,34 @@
+{
+  "name": "newphase-coaching",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NewPhase Coaching — Personalised Online Coaching. Premium dark cinematic Next.js site.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:static": "node scripts/build-static.mjs",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.114.0",
+    "@react-three/fiber": "^8.17.10",
+    "gsap": "^3.12.5",
+    "next": "^15.5.20",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.169.0",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.5.20",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.3"
+  }
+}

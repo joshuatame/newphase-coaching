@@ -1,0 +1,161 @@
+// Entity + payload types for the NewPhase Coaching site & admin.
+
+export interface SiteSettings {
+  id?: string;
+  name?: string;
+  tagline?: string;
+  description?: string;
+  email?: string;
+  phone?: string;
+  instagram?: string;
+  tiktok?: string;
+  youtube?: string;
+  logoUrl?: string;
+  heroHeadline?: string;
+  heroSubline?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  [key: string]: unknown;
+}
+
+export interface Section {
+  id: string;
+  key: string;
+  title?: string;
+  subtitle?: string;
+  body?: string;
+  eyebrow?: string;
+  order?: number;
+  imageUrl?: string;
+  items?: SectionItem[];
+  meta?: Record<string, unknown>;
+}
+
+export interface SectionItem {
+  id?: string;
+  title?: string;
+  body?: string;
+  icon?: string;
+  imageUrl?: string;
+  value?: string;
+  label?: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  slug?: string;
+  category?: string;
+  tags?: string[];
+  headline?: string;
+  story?: string;
+  summary?: string;
+  durationWeeks?: number;
+  result?: string;
+  beforeImageUrl?: string;
+  afterImageUrl?: string;
+  imageUrl?: string;
+  featured?: boolean;
+  stats?: { label: string; value: string }[];
+  order?: number;
+  createdAt?: string;
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  role?: string;
+  quote: string;
+  rating?: number;
+  imageUrl?: string;
+  clientId?: string;
+  result?: string;
+  featured?: boolean;
+  order?: number;
+  createdAt?: string;
+}
+
+export interface PackageFeature {
+  label: string;
+  included: boolean;
+  detail?: string;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  slug?: string;
+  tier?: string;
+  tagline?: string;
+  description?: string;
+  price?: number;
+  priceLabel?: string;
+  interval?: string;
+  currency?: string;
+  features?: PackageFeature[];
+  highlights?: string[];
+  featured?: boolean;
+  ctaLabel?: string;
+  order?: number;
+  createdAt?: string;
+}
+
+export interface Faq {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string;
+  order?: number;
+}
+
+export interface EnquiryPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  packageId?: string;
+  packageName?: string;
+  goal?: string;
+  message?: string;
+  experience?: string;
+  source?: string;
+}
+
+export interface Enquiry extends EnquiryPayload {
+  id: string;
+  status?: "new" | "contacted" | "converted" | "archived";
+  createdAt?: string;
+}
+
+export interface DashboardStats {
+  clients?: number;
+  testimonials?: number;
+  packages?: number;
+  enquiries?: number;
+  newEnquiries?: number;
+  recentEnquiries?: Enquiry[];
+  [key: string]: unknown;
+}
+
+export interface AuthResponse {
+  token: string;
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+    role?: string;
+  };
+}
+
+export interface MediaUploadResponse {
+  uploadUrl: string;
+  fileUrl: string;
+  fields?: Record<string, string>;
+  method?: string;
+}
+
+export interface ApiListResponse<T> {
+  data?: T[];
+  items?: T[];
+  results?: T[];
+  total?: number;
+}
