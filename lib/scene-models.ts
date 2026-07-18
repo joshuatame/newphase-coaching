@@ -16,7 +16,7 @@ export const SCENE_MODELS: SceneModelDef[] = [
     label: "Hex Dumbbell",
     src: "/models/dumbbell.glb",
     fitSize: 3.8,
-    mobileFitSize: 3.6,
+    mobileFitSize: 2.15,
     rubberName: "Rubber_Black",
     tiltX: Math.PI / 4,
   },
@@ -25,7 +25,7 @@ export const SCENE_MODELS: SceneModelDef[] = [
     label: "Gym Weights",
     src: "/models/gym-weights.glb",
     fitSize: 3.4,
-    mobileFitSize: 3.2,
+    mobileFitSize: 1.95,
     tiltX: 0,
   },
   {
@@ -33,7 +33,7 @@ export const SCENE_MODELS: SceneModelDef[] = [
     label: "Supplements",
     src: "/models/supplements.glb",
     fitSize: 3.2,
-    mobileFitSize: 3.0,
+    mobileFitSize: 1.85,
     tiltX: 0,
   },
   {
@@ -41,11 +41,9 @@ export const SCENE_MODELS: SceneModelDef[] = [
     label: "Weight Room",
     src: "/models/weight-room.glb",
     fitSize: 3.6,
-    mobileFitSize: 3.3,
+    mobileFitSize: 2.05,
     tiltX: 0,
   },
 ];
 
 export const MODEL_CYCLE_MS = 4000;
-/** How far (scene units) models travel when sliding in/out from the right. */
-export const MODEL_SLIDE_X = 6.5;

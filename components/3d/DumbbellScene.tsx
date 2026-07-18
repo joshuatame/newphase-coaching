@@ -4,11 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { assetUrl } from "@/lib/base-path";
-import {
-  MODEL_CYCLE_MS,
-  MODEL_SLIDE_X,
-  SCENE_MODELS,
-} from "@/lib/scene-models";
+import { MODEL_CYCLE_MS, SCENE_MODELS } from "@/lib/scene-models";
 
 export interface SceneHandle {
   group: THREE.Group | null;
@@ -26,8 +22,9 @@ type PreparedModel = {
 type SlidePhase = "idle" | "out" | "in";
 
 /**
- * Imperative Three.js stage — cycles gym GLBs with a right-side slide.
- * Dumbbell stays at 45°; other models stay upright and spin on Y.
+ * Imperative Three.js stage — cycles gym GLBs.
+ * Slide is outside the spin so motion is always screen-right.
+ * Dumbbell stays at 45°; other models stay upright.
  */
 export function DumbbellScene({
   lowPoly = false,
@@ -48,22 +45,27 @@ export function DumbbellScene({
     let modelIndex = 0;
     let pendingIndex: number | null = null;
     let slidePhase: SlidePhase = "idle";
+    let slideDistance = 8;
     const prepared: (PreparedModel | null)[] = SCENE_MODELS.map(() => null);
 
     const scene = new THREE.Scene();
     const isMobile = window.innerWidth < 768;
-    const slideX = isMobile ? MODEL_SLIDE_X * 0.85 : MODEL_SLIDE_X;
 
     const camera = new THREE.PerspectiveCamera(isMobile ? 42 : 40, 1, 0.1, 80);
     camera.position.set(0, isMobile ? 0.15 : 0.35, isMobile ? 5.2 : 6.2);
 
+    // GSAP / scroll handle — no continuous spin here
     const group = new THREE.Group();
     group.position.set(isMobile ? 0 : 1.15, isMobile ? -0.15 : 0.1, 0);
     scene.add(group);
 
-    // Stage handles horizontal slide; spin stays on `group` (Y axis).
-    const stage = new THREE.Group();
-    group.add(stage);
+    // Slide in world/parent X = screen-right (not affected by model spin)
+    const slideRig = new THREE.Group();
+    group.add(slideRig);
+
+    // Continuous Y spin lives under the slide so “from the right” stays consistent
+    const spinRig = new THREE.Group();
+    slideRig.add(spinRig);
 
     // Multi-light rig
     scene.add(new THREE.AmbientLight(0xe8eaee, 0.55));
@@ -123,6 +125,18 @@ export function DumbbellScene({
     );
     host.appendChild(renderer.domElement);
 
+    /** Distance past the right frustum edge so the model starts fully off-screen. */
+    const updateSlideDistance = () => {
+      const dist = Math.abs(camera.position.z - group.position.z);
+      const halfW =
+        Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) *
+        dist *
+        camera.aspect;
+      // Clear the right edge of the viewport (+ padding for model width)
+      slideDistance = halfW + (isMobile ? 3.2 : 4.2) - group.position.x;
+      slideDistance = Math.max(slideDistance, isMobile ? 7 : 9);
+    };
+
     const setSize = () => {
       if (!renderer || !host) return;
       const w = host.clientWidth || window.innerWidth;
@@ -133,6 +147,7 @@ export function DumbbellScene({
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
       renderer.domElement.style.display = "block";
+      updateSlideDistance();
     };
     setSize();
 
@@ -143,9 +158,9 @@ export function DumbbellScene({
     const mountModel = (index: number, atX = 0) => {
       const next = prepared[index];
       if (!next) return;
-      while (stage.children.length) stage.remove(stage.children[0]);
-      stage.add(next.root);
-      stage.position.x = atX;
+      while (spinRig.children.length) spinRig.remove(spinRig.children[0]);
+      spinRig.add(next.root);
+      slideRig.position.x = atX;
       modelIndex = index;
     };
 
@@ -164,7 +179,6 @@ export function DumbbellScene({
       const clone = gltf.scene.clone(true);
       const wrapper = new THREE.Group();
       const orient = new THREE.Group();
-      // Only the hex dumbbell is pitched; other assets stay upright.
       orient.rotation.x = opts.tiltX ?? 0;
 
       clone.traverse((obj) => {
@@ -262,7 +276,7 @@ export function DumbbellScene({
             rubberName: def.rubberName,
             tiltX: def.tiltX ?? 0,
           });
-          if (index === 0 || stage.children.length === 0) {
+          if (index === 0 || spinRig.children.length === 0) {
             mountModel(index, 0);
           }
           startCycle();
@@ -281,31 +295,34 @@ export function DumbbellScene({
       frame = requestAnimationFrame(animate);
       const delta = clock.getDelta();
 
-      // Continuous Y-axis spin (upright models rotate on their vertical axis)
-      group.rotation.y += delta * spinSpeed;
+      spinRig.rotation.y += delta * spinSpeed;
 
-      // Slide: out to the right, then in from further right
+      // Always exit/enter along +X = right side of the screen
       if (slidePhase === "out") {
-        stage.position.x = THREE.MathUtils.damp(
-          stage.position.x,
-          slideX,
-          7.5,
+        slideRig.position.x = THREE.MathUtils.damp(
+          slideRig.position.x,
+          slideDistance,
+          6.2,
           delta,
         );
-        if (stage.position.x > slideX - 0.08 && pendingIndex != null) {
-          mountModel(pendingIndex, slideX);
+        if (
+          slideRig.position.x > slideDistance - 0.12 &&
+          pendingIndex != null
+        ) {
+          // Park the next model fully off-screen right, then slide in
+          mountModel(pendingIndex, slideDistance);
           pendingIndex = null;
           slidePhase = "in";
         }
       } else if (slidePhase === "in") {
-        stage.position.x = THREE.MathUtils.damp(
-          stage.position.x,
+        slideRig.position.x = THREE.MathUtils.damp(
+          slideRig.position.x,
           0,
-          7.5,
+          6.2,
           delta,
         );
-        if (Math.abs(stage.position.x) < 0.04) {
-          stage.position.x = 0;
+        if (Math.abs(slideRig.position.x) < 0.05) {
+          slideRig.position.x = 0;
           slidePhase = "idle";
         }
       }
