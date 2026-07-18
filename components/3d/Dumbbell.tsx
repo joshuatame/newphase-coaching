@@ -4,10 +4,10 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { withBasePath } from "@/lib/base-path";
+import { assetUrl } from "@/lib/base-path";
 
 function getModelUrl() {
-  return withBasePath("/models/dumbbell.glb");
+  return assetUrl("/models/dumbbell.glb");
 }
 
 interface DumbbellProps {
@@ -44,17 +44,17 @@ export function Dumbbell({ spinSpeed = 0.32, fitSize = 3.2 }: DumbbellProps) {
         if (m.color) {
           const c = m.color;
           // Sketchfab rubber is near-black (~0.01) — lift so lights can catch it.
-          if (c.r < 0.08 && c.g < 0.08 && c.b < 0.08) {
-            m.color.set("#3a404a");
-            m.roughness = 0.5;
-            m.metalness = Math.min(m.metalness ?? 0.1, 0.2);
+          if (c.r < 0.12 && c.g < 0.12 && c.b < 0.12) {
+            m.color.set("#5a6270");
+            m.roughness = 0.45;
+            m.metalness = 0.15;
           }
         }
         if ("emissive" in m && m.emissive) {
-          m.emissive.set("#0a0c10");
-          m.emissiveIntensity = 0.15;
+          m.emissive.set("#12151a");
+          m.emissiveIntensity = 0.25;
         }
-        if ("envMapIntensity" in m) m.envMapIntensity = 1.45;
+        if ("envMapIntensity" in m) m.envMapIntensity = 1.2;
         m.needsUpdate = true;
       });
     });

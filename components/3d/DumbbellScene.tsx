@@ -1,11 +1,9 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { Environment } from "@react-three/drei";
-import { Suspense, useEffect, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import { Dumbbell } from "./Dumbbell";
-import { withBasePath } from "@/lib/base-path";
 
 export interface SceneHandle {
   group: THREE.Group | null;
@@ -20,12 +18,11 @@ function SpotlightRig() {
   const spotRef = useRef<THREE.SpotLight>(null);
   const targetRef = useRef<THREE.Object3D>(null);
 
-  useEffect(() => {
+  useFrame(() => {
     if (spotRef.current && targetRef.current) {
       spotRef.current.target = targetRef.current;
-      spotRef.current.target.updateMatrixWorld();
     }
-  }, []);
+  });
 
   return (
     <>
@@ -34,7 +31,7 @@ function SpotlightRig() {
         position={[5.5, 8, 4]}
         angle={0.5}
         penumbra={0.45}
-        intensity={5.5}
+        intensity={6}
         color="#fff4e0"
         distance={30}
         castShadow={false}
@@ -45,35 +42,27 @@ function SpotlightRig() {
 }
 
 function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
-  const group = useRef<THREE.Group | null>(null);
+  const group = useRef<THREE.Group>(null);
   const readySent = useRef(false);
 
-  useEffect(() => {
-    if (!group.current || readySent.current) return;
+  // R3F: refs are reliable inside the frame loop (React useEffect often misses first paint).
+  useFrame(() => {
+    if (readySent.current || !group.current) return;
     readySent.current = true;
     onReady?.({ group: group.current });
-  }, [onReady]);
+  });
 
   const isMobile =
     typeof window !== "undefined" ? window.innerWidth < 768 : false;
 
   return (
     <>
-      <ambientLight intensity={0.75} color="#eef0f4" />
-      <hemisphereLight args={["#ffffff", "#1a1d23", 0.7]} />
+      <ambientLight intensity={1.05} color="#f2f3f5" />
+      <hemisphereLight args={["#ffffff", "#1a1d23", 0.85]} />
       <SpotlightRig />
-      <directionalLight position={[3, 5, 2]} intensity={1.6} color="#ffffff" />
-      <directionalLight position={[-4, 1, -2]} intensity={0.55} color="#b6ff3b" />
-      <pointLight position={[0, 2, 3]} intensity={1.2} color="#ffffff" distance={12} />
-
-      <Suspense fallback={null}>
-        <Environment
-          files={withBasePath(
-            lowPoly ? "/environments/studio.hdr" : "/environments/city.hdr",
-          )}
-          environmentIntensity={1}
-        />
-      </Suspense>
+      <directionalLight position={[4, 6, 3]} intensity={2.1} color="#ffffff" />
+      <directionalLight position={[-4, 2, -2]} intensity={0.7} color="#b6ff3b" />
+      <pointLight position={[0, 2.5, 4]} intensity={1.6} color="#ffffff" distance={16} />
 
       <group
         ref={group}
@@ -93,8 +82,8 @@ function Rig({ lowPoly, onReady }: DumbbellSceneProps) {
 
 function LoaderMark() {
   return (
-    <mesh position={[1.1, 0, 0]}>
-      <boxGeometry args={[0.4, 0.4, 0.4]} />
+    <mesh position={[1.15, 0, 0]}>
+      <boxGeometry args={[0.35, 0.35, 0.35]} />
       <meshBasicMaterial color="#b6ff3b" wireframe />
     </mesh>
   );
@@ -125,7 +114,7 @@ export function DumbbellScene({
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0);
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.2;
+        gl.toneMappingExposure = 1.35;
       }}
     >
       <Suspense fallback={<LoaderMark />}>

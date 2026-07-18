@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { assetUrl } from "@/lib/base-path";
 
 interface LogoMarkProps {
   className?: string;
@@ -13,7 +13,7 @@ interface LogoMarkProps {
 
 /**
  * Transparent NP shield mark with a soft white glow.
- * Uses Next basePath automatically via next/image.
+ * Plain <img> + assetUrl so basePath is never dropped (next/image was).
  */
 export function LogoMark({
   className = "",
@@ -27,13 +27,15 @@ export function LogoMark({
     <span
       className={`relative inline-flex shrink-0 items-center justify-center ${boxClassName} ${glowClass} ${className}`}
     >
-      <Image
-        src="/brand/newphase-mark.png"
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={assetUrl("/brand/newphase-mark.png")}
         alt=""
-        fill
-        sizes="(max-width: 768px) 280px, 420px"
-        className="object-contain"
-        priority={priority}
+        width={420}
+        height={380}
+        decoding="async"
+        {...(priority ? { fetchPriority: "high" as const } : { loading: "lazy" as const })}
+        className="h-full w-full object-contain"
       />
     </span>
   );

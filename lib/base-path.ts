@@ -3,3 +3,8 @@ export function withBasePath(path: string): string {
   if (!path.startsWith("/")) return path;
   return `${base}${path}`;
 }
+
+/** Absolute URL for static public assets (img / GLB / HDR). */
+export function assetUrl(path: string): string {
+  return withBasePath(path.startsWith("/") ? path : `/${path}`);
+}
