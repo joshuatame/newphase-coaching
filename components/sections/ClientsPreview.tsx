@@ -4,24 +4,24 @@ import Link from "next/link";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Reveal } from "@/components/ui/Reveal";
 import { PhotoCarousel } from "@/components/ui/PhotoCarousel";
-import { useAsync } from "@/lib/useAsync";
-import { getClients } from "@/lib/api/newphase";
-import { buildTransformationSlides } from "@/lib/carousel";
-import type { Client } from "@/types/newphase";
+import { STOCK_TRANSFORMATION_PHOTOS } from "@/lib/carousel";
 
-/** Original mixed transformation rail (clients + stock). */
+/** Bottom homepage rail — built-in stock training imagery. */
 export function ClientsPreview() {
-  const { data: clients } = useAsync<Client[]>(() => getClients(), []);
-  const slides = buildTransformationSlides(clients);
+  const slides = STOCK_TRANSFORMATION_PHOTOS.map((s) => ({
+    id: s.id,
+    src: s.src,
+    label: s.label,
+    result: s.result,
+  }));
 
   return (
-    <section className="section-pad relative overflow-hidden">
+    <section className="section-pad relative overflow-hidden !pt-0">
       <div className="container-np">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
             eyebrow="Real Transformations"
             title="Results that speak for themselves"
-            intro="Swipe the rail — client photos mix with training imagery."
           />
           <Link
             href="/clients/"

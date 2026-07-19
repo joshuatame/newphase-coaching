@@ -30,11 +30,11 @@ function CoachCard({
         type="button"
         onClick={onSelect}
         aria-pressed={active}
-        className={`relative w-full overflow-hidden bg-obsidian text-left transition-transform duration-500 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+        className={`relative w-full bg-transparent text-left transition-transform duration-500 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
           active ? "z-10 scale-[1.04] md:scale-[1.06]" : "scale-100"
         }`}
       >
-        <div className="relative aspect-[3/4] w-full overflow-hidden">
+        <div className="relative aspect-[3/4] w-full bg-transparent">
           {src ? (
             <img
               src={src}
@@ -46,19 +46,14 @@ function CoachCard({
               }`}
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-near-black text-steel">
+            <div className="flex h-full items-center justify-center text-steel">
               Photo coming soon
             </div>
           )}
-          <div
-            className={`pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-obsidian to-transparent transition-opacity duration-500 ${
-              active ? "opacity-80" : "opacity-40"
-            }`}
-          />
         </div>
       </button>
 
-      <div className="mt-5">
+      <div className="mt-3 md:mt-4">
         <h3 className="font-display text-2xl tracking-wide text-off-white md:text-3xl">
           {coach.name.toUpperCase()}
         </h3>
@@ -68,7 +63,7 @@ function CoachCard({
       </div>
 
       <div
-        className={`mt-4 overflow-hidden transition-all duration-500 ${
+        className={`mt-3 overflow-hidden transition-all duration-500 ${
           active ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
@@ -91,10 +86,10 @@ export function CoachesSection() {
   if (coaches.length === 0) return null;
 
   return (
-    <section className="section-pad relative overflow-hidden bg-obsidian">
+    <section className="section-pad relative overflow-visible !pb-8 md:!pb-12">
       <div className="container-np">
         <Reveal>
-          <p className="eyebrow mb-4 flex items-center gap-3">
+          <p className="eyebrow mb-3 flex items-center gap-3 md:mb-4">
             <span className="h-px w-10 bg-accent" aria-hidden />
             The Coaches
           </p>
@@ -104,9 +99,9 @@ export function CoachesSection() {
         </Reveal>
 
         <div
-          className={`mt-10 grid gap-8 md:mt-14 md:gap-6 ${
+          className={`mt-5 grid gap-6 md:mt-7 md:gap-6 ${
             coaches.length === 1
-              ? "md:grid-cols-1 md:max-w-md"
+              ? "md:max-w-md md:grid-cols-1"
               : coaches.length === 2
                 ? "md:grid-cols-2"
                 : "md:grid-cols-3"

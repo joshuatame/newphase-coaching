@@ -42,11 +42,11 @@ export default function TrainersPage() {
                     onClick={() =>
                       setActiveId((id) => (id === coach.id ? null : coach.id))
                     }
-                    className={`relative w-full overflow-hidden bg-obsidian text-left transition-transform duration-500 ${
+                    className={`relative w-full bg-transparent text-left transition-transform duration-500 ${
                       active ? "scale-[1.04]" : ""
                     }`}
                   >
-                    <div className="relative aspect-[3/4]">
+                    <div className="relative aspect-[3/4] bg-transparent">
                       {src ? (
                         <img
                           src={src}

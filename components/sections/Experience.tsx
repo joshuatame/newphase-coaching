@@ -2,21 +2,9 @@
 
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Reveal } from "@/components/ui/Reveal";
-import { PhotoCarousel } from "@/components/ui/PhotoCarousel";
 import { EXPERIENCE_GRID } from "@/lib/fallbacks";
-import { useAsync } from "@/lib/useAsync";
-import { getPhotoRail } from "@/lib/api/newphase";
-import { DEFAULT_PHOTO_RAIL, mergePhotoRail } from "@/lib/gallery";
-import type { CarouselSlide } from "@/lib/carousel";
 
 export function Experience() {
-  const { data: rail } = useAsync(getPhotoRail, DEFAULT_PHOTO_RAIL);
-  const slides: CarouselSlide[] = mergePhotoRail(rail).map((s) => ({
-    id: s.id,
-    src: s.src,
-    label: s.label || "",
-  }));
-
   return (
     <section className="section-pad relative">
       <div className="container-np">
@@ -52,14 +40,6 @@ export function Experience() {
           ))}
         </div>
       </div>
-
-      {slides.length > 0 && (
-        <Reveal>
-          <div className="mt-8 md:mt-14">
-            <PhotoCarousel slides={slides} />
-          </div>
-        </Reveal>
-      )}
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { SceneHandle } from "./DumbbellScene";
 import { ThreeErrorBoundary } from "./ThreeErrorBoundary";
 import { LogoMark } from "@/components/brand/LogoMark";
+import { assetUrl } from "@/lib/base-path";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const DumbbellScene = dynamic(
@@ -123,7 +124,7 @@ export function ScrollDumbbell() {
             },
           });
 
-          tl.to(g.scale, { x: 1.55, y: 1.55, z: 1.55, ease: "none" }, 0).to(
+          tl.to(g.scale, { x: 1.25, y: 1.25, z: 1.25, ease: "none" }, 0).to(
             g.position,
             {
               x: isMobile ? 0 : 0.9,
@@ -134,20 +135,20 @@ export function ScrollDumbbell() {
             0,
           );
 
-          tl.to(g.scale, { x: 2.6, y: 2.6, z: 2.6, ease: "none" }, 0.4).to(
+          tl.to(g.scale, { x: 1.7, y: 1.7, z: 1.7, ease: "none" }, 0.4).to(
             g.position,
             {
               x: isMobile ? 0 : 0.35,
               y: 0.2,
-              z: 2.4,
+              z: 1.4,
               ease: "none",
             },
             0.4,
           );
 
-          tl.to(g.scale, { x: 6, y: 6, z: 6, ease: "power1.in" }, 0.7).to(
+          tl.to(g.scale, { x: 2.4, y: 2.4, z: 2.4, ease: "power1.in" }, 0.7).to(
             g.position,
-            { x: 0, y: 0.25, z: 9, ease: "power2.in" },
+            { x: 0, y: 0.25, z: 3.2, ease: "power2.in" },
             0.7,
           );
 
@@ -188,11 +189,16 @@ export function ScrollDumbbell() {
 
       <div
         ref={logoRef}
-        className="absolute inset-0 flex items-center justify-center opacity-[0.1] md:justify-end md:pr-[8%] lg:pr-[11%]"
+        className="absolute inset-0 flex items-center justify-center gap-4 opacity-[0.1] md:justify-end md:gap-8 md:pr-[6%] lg:pr-[8%]"
       >
+        <img
+          src={assetUrl("/brand/bg-duo.png")}
+          alt=""
+          className="h-[min(38vh,180px)] w-auto max-w-[42vw] object-contain opacity-90 md:h-[min(52vh,380px)] md:max-w-[28vw]"
+        />
         <LogoMark
           glow="hero"
-          boxClassName="h-[min(42vh,200px)] w-[min(62vw,200px)] md:h-[min(58vh,420px)] md:w-[min(42vw,420px)]"
+          boxClassName="h-[min(42vh,200px)] w-[min(48vw,200px)] md:h-[min(58vh,420px)] md:w-[min(36vw,420px)]"
         />
       </div>
 

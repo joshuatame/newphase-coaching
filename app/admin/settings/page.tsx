@@ -178,11 +178,11 @@ export default function AdminSettingsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-xl tracking-wide text-off-white">
-                Experience photo rail
+                Top homepage carousel
               </h2>
               <p className="mt-1 text-sm text-steel">
-                Scrolls under the &ldquo;Everything you need in one system&rdquo;
-                cards on the homepage.
+                Selected photos for the upper homepage rail (above The Coaches).
+                The lower rail uses built-in stock imagery.
               </p>
             </div>
             <AdminButton variant="ghost" onClick={addSlide}>

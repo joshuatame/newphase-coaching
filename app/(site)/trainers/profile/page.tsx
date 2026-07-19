@@ -75,7 +75,7 @@ function ProfileContent() {
       <div className="container-np grid items-center gap-8 lg:grid-cols-[minmax(0,42%)_minmax(0,1fr)] lg:gap-14">
         {/* Image — left */}
         <div className="relative order-2 mx-auto w-full max-w-md lg:order-1 lg:mx-0 lg:max-w-none">
-          <div className="relative aspect-[3/4] overflow-hidden bg-obsidian">
+          <div className="relative aspect-[3/4] overflow-hidden bg-transparent">
             {src ? (
               <img
                 src={src}
