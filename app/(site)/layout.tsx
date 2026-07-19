@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
-import { ScrollDumbbell } from "@/components/3d/ScrollDumbbell";
+import { SiteStage } from "@/components/3d/SiteStage";
 import { PoweredByTame } from "@/components/brand/PoweredByTame";
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <ScrollDumbbell />
+      <SiteStage />
       <Nav />
       <main id="main" className="relative z-10 bg-transparent">
         {children}

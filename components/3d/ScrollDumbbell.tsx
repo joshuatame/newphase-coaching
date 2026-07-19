@@ -13,11 +13,14 @@ const DumbbellScene = dynamic(
 );
 
 /**
- * Site-wide fixed stage:
- * GLB dumbbell on the right → scroll grow / zoom / fade,
- * NP mark blooms in as the hand-off.
+ * Fixed site backdrop (obsidian + NP logo) everywhere.
+ * Optional GLB dumbbell scroll stage — homepage only.
  */
-export function ScrollDumbbell() {
+export function ScrollDumbbell({
+  showDumbbell = true,
+}: {
+  showDumbbell?: boolean;
+}) {
   const handleRef = useRef<SceneHandle | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
@@ -32,7 +35,7 @@ export function ScrollDumbbell() {
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !showDumbbell) return;
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
@@ -48,10 +51,10 @@ export function ScrollDumbbell() {
     } catch {
       setWebglOk(false);
     }
-  }, []);
+  }, [showDumbbell]);
 
   useEffect(() => {
-    if (!mounted || reducedMotion || !webglOk) return;
+    if (!mounted || !showDumbbell || reducedMotion || !webglOk) return;
     let ctx: { revert: () => void } | null = null;
     let cancelled = false;
 
@@ -94,7 +97,6 @@ export function ScrollDumbbell() {
         try {
           handle = await waitForHandle();
         } catch (err) {
-          // Keep the canvas spinning — never swap to the diamond fallback.
           console.warn("[NewPhase 3D] scroll sync skipped:", err);
           if (logo) gsap.set(logo, { opacity: 0.22, scale: 1 });
           return;
@@ -115,7 +117,6 @@ export function ScrollDumbbell() {
         if (wrap) gsap.set(wrap, { opacity: 1 });
 
         ctx = gsap.context(() => {
-          // Grow through the upper page, then exit right as Coaches enters.
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: document.documentElement,
@@ -127,7 +128,6 @@ export function ScrollDumbbell() {
             },
           });
 
-          // Early scroll — gentle grow, still on the right
           tl.to(
             g.scale,
             { x: 1.35, y: 1.35, z: 1.35, ease: "none" },
@@ -143,7 +143,6 @@ export function ScrollDumbbell() {
             0,
           );
 
-          // Mid — a bit larger, still framed
           tl.to(
             g.scale,
             { x: 1.65, y: 1.65, z: 1.65, ease: "none" },
@@ -159,7 +158,6 @@ export function ScrollDumbbell() {
             0.45,
           );
 
-          // Final — slide off the right edge as Coaches arrives
           tl.to(
             g.scale,
             { x: 1.85, y: 1.85, z: 1.85, ease: "power1.in" },
@@ -188,7 +186,6 @@ export function ScrollDumbbell() {
           }
         });
 
-        // Recalculate once fonts/images settle (coaches height can shift)
         requestAnimationFrame(() => ScrollTrigger.refresh());
         ScrollTrigger.refresh();
       } catch (err) {
@@ -200,9 +197,9 @@ export function ScrollDumbbell() {
       cancelled = true;
       ctx?.revert();
     };
-  }, [mounted, reducedMotion, webglOk]);
+  }, [mounted, showDumbbell, reducedMotion, webglOk]);
 
-  const showScene = mounted && !reducedMotion && webglOk;
+  const showScene = showDumbbell && mounted && !reducedMotion && webglOk;
 
   return (
     <div
@@ -214,7 +211,9 @@ export function ScrollDumbbell() {
 
       <div
         ref={logoRef}
-        className="absolute inset-0 flex items-center justify-center opacity-[0.12]"
+        className={`absolute inset-0 flex items-center justify-center ${
+          showDumbbell ? "opacity-[0.12]" : "opacity-[0.22]"
+        }`}
       >
         <LogoMark
           glow="hero"
@@ -230,7 +229,7 @@ export function ScrollDumbbell() {
         </ThreeErrorBoundary>
       )}
 
-      {mounted && (reducedMotion || !webglOk) && (
+      {showDumbbell && mounted && (reducedMotion || !webglOk) && (
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.14]">
           <LogoMark
             glow="hero"
