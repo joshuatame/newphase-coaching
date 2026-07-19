@@ -41,8 +41,8 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="container-np pt-28 pb-16">
-        <div className="h-[70svh] animate-pulse rounded-3xl surface" />
+      <div className="container-np pt-20 pb-10">
+        <div className="h-80 animate-pulse rounded-3xl surface" />
       </div>
     );
   }
@@ -71,31 +71,27 @@ function ProfileContent() {
   const categories = filledCategories(coach);
 
   return (
-    <section className="relative overflow-hidden pt-20 pb-16 md:min-h-[100svh] md:pt-28 md:pb-20">
-      <div className="container-np grid items-center gap-8 lg:grid-cols-[minmax(0,42%)_minmax(0,1fr)] lg:gap-14">
-        {/* Image — left */}
-        <div className="relative order-2 mx-auto w-full max-w-md lg:order-1 lg:mx-0 lg:max-w-none">
-          <div className="relative aspect-[3/4] overflow-hidden bg-transparent">
-            {src ? (
-              <img
-                src={src}
-                alt={coach.name}
-                className="h-full w-full object-contain object-bottom"
-              />
-            ) : null}
-          </div>
+    <section className="relative overflow-hidden pt-16 pb-12 md:pt-24 md:pb-16">
+      <div className="container-np grid items-start gap-4 md:gap-8 lg:grid-cols-[minmax(0,40%)_minmax(0,1fr)] lg:gap-10">
+        {/* Image first — top on mobile, left on desktop */}
+        <div className="relative w-full max-w-sm md:max-w-md lg:max-w-none">
+          {src ? (
+            <img
+              src={src}
+              alt={coach.name}
+              className="mx-auto h-auto max-h-[42vh] w-full object-contain object-top md:max-h-[70vh] lg:mx-0"
+            />
+          ) : null}
         </div>
 
-        {/* Copy + categories — right */}
-        <div className="relative z-10 order-1 lg:order-2">
-          {(coach.role || "Coach") && (
-            <p className="eyebrow mb-4 flex items-center gap-3 md:mb-6">
-              <span className="h-px w-10 bg-accent" aria-hidden />
-              {coach.role || "Coach"}
-            </p>
-          )}
+        {/* Copy + categories */}
+        <div className="relative z-10 min-w-0 pt-0 lg:pt-2">
+          <p className="eyebrow mb-2 flex items-center gap-3 md:mb-4">
+            <span className="h-px w-10 bg-accent" aria-hidden />
+            {coach.role || "Coach"}
+          </p>
 
-          <h1 className="display-hero uppercase">
+          <h1 className="display-hero uppercase leading-[0.86]">
             <span className="text-off-white">{first}</span>
             {last ? (
               <>
@@ -106,19 +102,19 @@ function ProfileContent() {
           </h1>
 
           {coach.bio && (
-            <p className="mt-4 max-w-xl text-[0.95rem] leading-relaxed text-steel md:mt-8 md:text-lg">
+            <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-steel md:mt-5 md:text-lg">
               {coach.bio}
             </p>
           )}
 
           {categories.length > 0 && (
-            <div className="mt-8 space-y-6 md:mt-10">
+            <div className="mt-5 space-y-4 md:mt-7 md:space-y-5">
               {categories.map((cat) => (
                 <div key={cat.label}>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-accent">
                     {cat.label}
                   </p>
-                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-soft-silver md:text-base">
+                  <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-soft-silver md:text-base">
                     {cat.body}
                   </p>
                 </div>
@@ -126,7 +122,7 @@ function ProfileContent() {
             </div>
           )}
 
-          <div className="mt-8 flex flex-wrap items-center gap-3 md:mt-10 md:gap-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3 md:mt-8 md:gap-4">
             <Link href="/apply/" className="btn btn-primary">
               Apply for coaching
             </Link>
@@ -147,8 +143,8 @@ export default function TrainerProfilePage() {
   return (
     <Suspense
       fallback={
-        <div className="container-np pt-28 pb-16">
-          <div className="h-[70svh] animate-pulse rounded-3xl surface" />
+        <div className="container-np pt-20 pb-10">
+          <div className="h-80 animate-pulse rounded-3xl surface" />
         </div>
       }
     >
