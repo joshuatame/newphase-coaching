@@ -189,17 +189,23 @@ export function ScrollDumbbell() {
 
       <div
         ref={logoRef}
-        className="absolute inset-0 flex items-center justify-center gap-4 opacity-[0.1] md:justify-end md:gap-8 md:pr-[6%] lg:pr-[8%]"
+        className="absolute inset-0 opacity-[0.12]"
       >
-        <img
-          src={assetUrl("/brand/bg-duo.png")}
-          alt=""
-          className="h-[min(38vh,180px)] w-auto max-w-[42vw] object-contain opacity-90 md:h-[min(52vh,380px)] md:max-w-[28vw]"
-        />
-        <LogoMark
-          glow="hero"
-          boxClassName="h-[min(42vh,200px)] w-[min(48vw,200px)] md:h-[min(58vh,420px)] md:w-[min(36vw,420px)]"
-        />
+        {/* Duo photo — left, matched to logo scale */}
+        <div className="absolute inset-y-0 left-0 flex items-center justify-start pl-[4%] md:pl-[6%] lg:pl-[7%]">
+          <img
+            src={assetUrl("/brand/bg-duo.png")}
+            alt=""
+            className="h-[min(42vh,200px)] w-[min(48vw,200px)] object-contain md:h-[min(58vh,420px)] md:w-[min(36vw,420px)]"
+          />
+        </div>
+        {/* NP mark — right */}
+        <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-[4%] md:pr-[6%] lg:pr-[8%]">
+          <LogoMark
+            glow="hero"
+            boxClassName="h-[min(42vh,200px)] w-[min(48vw,200px)] md:h-[min(58vh,420px)] md:w-[min(36vw,420px)]"
+          />
+        </div>
       </div>
 
       {showScene && (
@@ -211,11 +217,20 @@ export function ScrollDumbbell() {
       )}
 
       {mounted && (reducedMotion || !webglOk) && (
-        <div className="absolute inset-0 flex items-center justify-center md:justify-end md:pr-[10%]">
-          <LogoMark
-            glow="hero"
-            boxClassName="h-[min(50vh,240px)] w-[min(60vw,240px)] md:h-[320px] md:w-[320px]"
-          />
+        <div className="absolute inset-0 opacity-[0.14]">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-[4%] md:pl-[6%]">
+            <img
+              src={assetUrl("/brand/bg-duo.png")}
+              alt=""
+              className="h-[min(50vh,240px)] w-[min(60vw,240px)] object-contain md:h-[320px] md:w-[320px]"
+            />
+          </div>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-[4%] md:pr-[10%]">
+            <LogoMark
+              glow="hero"
+              boxClassName="h-[min(50vh,240px)] w-[min(60vw,240px)] md:h-[320px] md:w-[320px]"
+            />
+          </div>
         </div>
       )}
     </div>
