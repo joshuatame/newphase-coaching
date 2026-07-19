@@ -21,7 +21,7 @@ export const DEFAULT_COACHES: Coach[] = [
     name: "Coach Siegwalt",
     role: "Coach",
     bio: "Strength and physique coaching built from years on the gym floor. Programs, nutrition and accountability personalised to your phase.",
-    imageUrl: "/brand/coaches/siegwalt.png",
+    imageUrl: "/brand/coaches/siegwalt-v2.png",
     visible: true,
     sortOrder: 0,
     categories: [
@@ -53,7 +53,7 @@ export const DEFAULT_COACHES: Coach[] = [
     name: "Coach Hadley",
     role: "Coach",
     bio: "Hypertrophy and performance coaching with a focus on consistency, technique and results that stick.",
-    imageUrl: "/brand/coaches/hadley.png",
+    imageUrl: "/brand/coaches/hadley-v2.png",
     visible: true,
     sortOrder: 1,
     categories: [
@@ -167,17 +167,30 @@ export function visibleCoaches(coaches: Coach[]): Coach[] {
   return coaches.filter((c) => c.visible && c.name.trim() && c.imageUrl);
 }
 
+/** Cloudflare still caches old opaque coach PNGs under the original filenames. */
+const COACH_IMAGE_CACHE_BUST: Record<string, string> = {
+  "/brand/coaches/siegwalt.png": "/brand/coaches/siegwalt-v2.png",
+  "/brand/coaches/hadley.png": "/brand/coaches/hadley-v2.png",
+};
+
 export function resolveCoachImage(url?: string) {
   if (!url) return "";
-  if (
-    url.startsWith("http") ||
-    url.startsWith("data:") ||
-    url.includes("/uploads") ||
-    url.includes("tame-dynamics")
-  ) {
-    return url;
+  let path = url;
+  for (const [from, to] of Object.entries(COACH_IMAGE_CACHE_BUST)) {
+    if (path === from || path.endsWith(from)) {
+      path = path.replace(from, to);
+      break;
+    }
   }
-  return assetUrl(url.startsWith("/") ? url : `/${url}`);
+  if (
+    path.startsWith("http") ||
+    path.startsWith("data:") ||
+    path.includes("/uploads") ||
+    path.includes("tame-dynamics")
+  ) {
+    return path;
+  }
+  return assetUrl(path.startsWith("/") ? path : `/${path}`);
 }
 
 /** Split display name for hero styling — first token(s) white, last token red. */
