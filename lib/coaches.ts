@@ -21,7 +21,7 @@ export const DEFAULT_COACHES: Coach[] = [
     name: "Coach Siegwalt",
     role: "Coach",
     bio: "Strength and physique coaching built from years on the gym floor. Programs, nutrition and accountability personalised to your phase.",
-    imageUrl: "/brand/coaches/siegwalt-v2.png",
+    imageUrl: "/brand/coaches/siegwalt.cutout.png",
     visible: true,
     sortOrder: 0,
     categories: [
@@ -53,7 +53,7 @@ export const DEFAULT_COACHES: Coach[] = [
     name: "Coach Hadley",
     role: "Coach",
     bio: "Hypertrophy and performance coaching with a focus on consistency, technique and results that stick.",
-    imageUrl: "/brand/coaches/hadley-v2.png",
+    imageUrl: "/brand/coaches/hadley.cutout.png",
     visible: true,
     sortOrder: 1,
     categories: [
@@ -167,10 +167,12 @@ export function visibleCoaches(coaches: Coach[]): Coach[] {
   return coaches.filter((c) => c.visible && c.name.trim() && c.imageUrl);
 }
 
-/** Cloudflare still caches old opaque coach PNGs under the original filenames. */
+/** Cloudflare caches old opaque coach PNGs (and briefly 404'd -v2) under prior URLs. */
 const COACH_IMAGE_CACHE_BUST: Record<string, string> = {
-  "/brand/coaches/siegwalt.png": "/brand/coaches/siegwalt-v2.png",
-  "/brand/coaches/hadley.png": "/brand/coaches/hadley-v2.png",
+  "/brand/coaches/siegwalt.png": "/brand/coaches/siegwalt.cutout.png",
+  "/brand/coaches/siegwalt-v2.png": "/brand/coaches/siegwalt.cutout.png",
+  "/brand/coaches/hadley.png": "/brand/coaches/hadley.cutout.png",
+  "/brand/coaches/hadley-v2.png": "/brand/coaches/hadley.cutout.png",
 };
 
 export function resolveCoachImage(url?: string) {
