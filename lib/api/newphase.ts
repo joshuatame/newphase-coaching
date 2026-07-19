@@ -138,6 +138,43 @@ function normalizeClient(raw: Client): Client {
   };
 }
 
+/** Map Prisma page section → frontend Section shape. */
+function normalizeSection(raw: Section): Section {
+  const r = raw as Section & {
+    sectionKey?: string;
+    mediaUrl?: string;
+    sortOrder?: number;
+    metadata?: { role?: string };
+  };
+  const sectionKey = r.sectionKey || raw.key || "";
+  return {
+    ...raw,
+    key: sectionKey,
+    page: raw.page,
+    imageUrl: raw.imageUrl || r.mediaUrl || undefined,
+    mediaUrl: r.mediaUrl || raw.imageUrl,
+    order: raw.order ?? r.sortOrder ?? 0,
+    subtitle: raw.subtitle || r.metadata?.role || undefined,
+  };
+}
+
+function toSectionDto(data: Partial<Section>) {
+  return {
+    eyebrow: data.eyebrow,
+    title: data.title,
+    body: data.body,
+    ctaLabel: data.ctaLabel,
+    ctaHref: data.ctaHref,
+    mediaUrl: data.imageUrl || data.mediaUrl,
+    secondaryMediaUrl: data.secondaryMediaUrl,
+    sortOrder: data.order,
+    visible: data.visible,
+    metadata: data.subtitle
+      ? { ...(data.meta || {}), role: data.subtitle }
+      : data.meta,
+  };
+}
+
 /** Map enquiry row → frontend Enquiry shape. */
 function normalizeEnquiry(raw: Enquiry): Enquiry {
   const fullName = raw.fullName || raw.name;
@@ -206,7 +243,7 @@ export async function getApplyFormConfig(): Promise<ApplyFormConfig> {
 
 export async function getSections(): Promise<Section[]> {
   const res = await apiFetch<unknown>(`${NP}/sections`);
-  return unwrapList<Section>(res);
+  return unwrapList<Section>(res).map(normalizeSection);
 }
 
 export async function getClients(params?: {
@@ -594,7 +631,7 @@ export async function adminDeleteFaq(id: string): Promise<void> {
 /* --- Admin: Sections / Content --- */
 export async function adminGetSections(): Promise<Section[]> {
   const res = await apiFetch<unknown>(`${NP}/admin/sections`, { auth: true });
-  return unwrapList<Section>(res);
+  return unwrapList<Section>(res).map(normalizeSection);
 }
 export async function adminUpdateSection(
   id: string,
@@ -602,10 +639,16 @@ export async function adminUpdateSection(
 ): Promise<Section | null> {
   const res = await apiFetch<unknown>(`${NP}/admin/sections/${id}`, {
     method: "PUT",
-    body: data,
+    body: toSectionDto(data),
     auth: true,
   });
-  return unwrapItem<Section>(res);
+  const item = unwrapItem<Section>(res);
+  return item ? normalizeSection(item) : null;
+}
+
+export async function adminGetTrainerSection(): Promise<Section | null> {
+  const sections = await adminGetSections();
+  return sections.find((s) => s.key === "trainer") || null;
 }
 
 /* --- Admin: Site settings --- */

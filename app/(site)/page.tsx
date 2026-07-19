@@ -1,7 +1,8 @@
 import { Hero } from "@/components/sections/Hero";
 import { NewPhaseWay } from "@/components/sections/NewPhaseWay";
-import { Personalisation } from "@/components/sections/Personalisation";
 import { ClientsPreview } from "@/components/sections/ClientsPreview";
+import { TrainerProfile } from "@/components/sections/TrainerProfile";
+import { Personalisation } from "@/components/sections/Personalisation";
 import { Experience } from "@/components/sections/Experience";
 import { PackagesPreview } from "@/components/sections/PackagesPreview";
 import { TestimonialsPreview } from "@/components/sections/TestimonialsPreview";
@@ -14,8 +15,9 @@ export default function HomePage() {
       <Preloader />
       <Hero />
       <NewPhaseWay />
-      <Personalisation />
       <ClientsPreview />
+      <TrainerProfile />
+      <Personalisation />
       <Experience />
       <PackagesPreview />
       <TestimonialsPreview />

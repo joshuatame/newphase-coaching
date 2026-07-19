@@ -64,7 +64,7 @@ export default function ClientsPage() {
                   onClick={() => setActive(cat)}
                   className={`whitespace-nowrap rounded-full border px-5 py-2 text-sm transition-colors ${
                     active === cat
-                      ? "border-accent bg-accent text-obsidian"
+                      ? "border-accent bg-accent text-off-white"
                       : "border-[color:var(--edge-strong)] text-soft-silver hover:text-off-white"
                   }`}
                 >

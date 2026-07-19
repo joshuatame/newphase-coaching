@@ -239,7 +239,7 @@ export default function AdminClientsPage() {
             <Toggle
               checked={Boolean(editing.featured)}
               onChange={(v) => set({ featured: v })}
-              label="Feature on homepage"
+              label="Show in homepage carousel"
             />
           </div>
         )}

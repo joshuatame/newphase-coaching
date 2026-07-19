@@ -33,7 +33,7 @@ export default function AdminContentPage() {
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-2 text-sm capitalize transition-colors ${
               tab === t
-                ? "bg-accent text-obsidian"
+                ? "bg-accent text-off-white"
                 : "border border-[color:var(--edge-strong)] text-soft-silver hover:text-off-white"
             }`}
           >

@@ -59,7 +59,7 @@ export function DumbbellScene({
     fill.position.set(-5, 3, 2);
     scene.add(fill);
 
-    const accent = new THREE.DirectionalLight(0xb6ff3b, 0.55);
+    const accent = new THREE.DirectionalLight(0xd41c04, 0.55);
     accent.position.set(-3, 1.5, -3);
     scene.add(accent);
 
@@ -75,7 +75,7 @@ export function DumbbellScene({
     front.position.set(isMobile ? 0 : 1.2, 1.2, 5);
     scene.add(front);
 
-    const under = new THREE.PointLight(0xb6ff3b, 0.85, 12);
+    const under = new THREE.PointLight(0xd41c04, 0.85, 12);
     under.position.set(isMobile ? 0 : 1.1, -2.2, 1);
     scene.add(under);
 

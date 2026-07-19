@@ -6,21 +6,26 @@ import { Reveal } from "@/components/ui/Reveal";
 import { PhotoCarousel } from "@/components/ui/PhotoCarousel";
 import { useAsync } from "@/lib/useAsync";
 import { getClients } from "@/lib/api/newphase";
-import { buildTransformationSlides } from "@/lib/carousel";
+import { buildFeaturedClientSlides } from "@/lib/carousel";
 import type { Client } from "@/types/newphase";
 
 export function ClientsPreview() {
-  const { data: clients } = useAsync<Client[]>(() => getClients(), []);
-  const slides = buildTransformationSlides(clients);
+  const { data: clients } = useAsync<Client[]>(
+    () => getClients({ featured: true }),
+    [],
+  );
+  const slides = buildFeaturedClientSlides(clients);
+
+  if (slides.length === 0) return null;
 
   return (
-    <section className="section-pad relative overflow-hidden">
+    <section className="section-pad !pt-0 relative overflow-hidden">
       <div className="container-np">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
-            eyebrow="Real Transformations"
-            title="Results that speak for themselves"
-            intro="Swipe the rail — live client photos mix with training imagery. Upload more anytime from admin."
+            eyebrow="Client Transformations"
+            title="Meet the people putting in the work"
+            intro="Featured clients from the roster. Tap a photo to open their story."
           />
           <Link
             href="/clients/"
@@ -32,7 +37,7 @@ export function ClientsPreview() {
       </div>
 
       <Reveal>
-        <div className="mt-6 md:mt-14">
+        <div className="mt-6 md:mt-10">
           <PhotoCarousel slides={slides} />
         </div>
       </Reveal>

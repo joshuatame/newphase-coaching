@@ -31,7 +31,7 @@ export function AdminButton({
   variant?: "primary" | "ghost" | "danger";
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const styles: Record<string, string> = {
-    primary: "bg-accent text-obsidian hover:shadow-[0_0_30px_-8px_rgba(182,255,59,0.6)]",
+    primary: "bg-accent text-off-white hover:shadow-[0_0_30px_-8px_rgba(212,28,4,0.55)]",
     ghost:
       "border border-[color:var(--edge-strong)] text-soft-silver hover:text-off-white",
     danger: "border border-red-500/40 text-red-300 hover:bg-red-500/10",

@@ -79,7 +79,7 @@ function ApplyForm({ config }: { config: ApplyFormConfig }) {
     return (
       <Reveal>
         <div className="mx-auto max-w-xl rounded-3xl surface-carbon px-8 py-16 text-center">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent text-obsidian">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent text-off-white">
             <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none">
               <path
                 d="M5 13l4 4L19 7"

@@ -11,8 +11,8 @@
   --steel: #808791;
   --soft-silver: #c7cbd1;
   --off-white: #f5f5f2;
-  --accent: #b6ff3b;
-  --accent-muted: #85b82b;
+  --accent: #d41c04;
+  --accent-muted: #9a1503;
 
   --bg: var(--obsidian);
   --fg: var(--off-white);
@@ -157,16 +157,16 @@ body {
 
 .glow-accent {
   box-shadow:
-    0 0 0 1px rgba(182, 255, 59, 0.35),
-    0 0 40px -8px rgba(182, 255, 59, 0.35),
-    0 0 90px -20px rgba(182, 255, 59, 0.25);
+    0 0 0 1px rgba(212, 28, 4, 0.4),
+    0 0 40px -8px rgba(212, 28, 4, 0.35),
+    0 0 90px -20px rgba(212, 28, 4, 0.25);
 }
 
 .radial-fade {
   background:
     radial-gradient(
       120% 80% at 50% -10%,
-      rgba(182, 255, 59, 0.06) 0%,
+      rgba(212, 28, 4, 0.07) 0%,
       transparent 55%
     ),
     radial-gradient(
@@ -187,7 +187,7 @@ body {
   filter:
     drop-shadow(0 0 18px rgba(245, 245, 242, 0.28))
     drop-shadow(0 0 48px rgba(245, 245, 242, 0.14))
-    drop-shadow(0 0 90px rgba(182, 255, 59, 0.08));
+    drop-shadow(0 0 90px rgba(212, 28, 4, 0.1));
 }
 
 /* -------------------------------- Layout -------------------------- */
@@ -246,10 +246,10 @@ body {
 
 .btn-primary {
   background-color: var(--accent);
-  color: var(--obsidian);
+  color: var(--off-white);
 }
 .btn-primary:hover {
-  box-shadow: 0 0 40px -8px rgba(182, 255, 59, 0.6);
+  box-shadow: 0 0 40px -8px rgba(212, 28, 4, 0.55);
   transform: translateY(-2px);
 }
 

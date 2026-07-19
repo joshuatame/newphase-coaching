@@ -77,14 +77,20 @@ export interface SiteSettings {
 export interface Section {
   id: string;
   key: string;
+  page?: string;
   title?: string;
   subtitle?: string;
   body?: string;
   eyebrow?: string;
   order?: number;
   imageUrl?: string;
+  mediaUrl?: string;
+  secondaryMediaUrl?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
   items?: SectionItem[];
   meta?: Record<string, unknown>;
+  visible?: boolean;
 }
 
 export interface SectionItem {
