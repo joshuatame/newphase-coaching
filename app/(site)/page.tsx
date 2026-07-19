@@ -1,10 +1,9 @@
 import { Hero } from "@/components/sections/Hero";
 import { NewPhaseWay } from "@/components/sections/NewPhaseWay";
 import { Personalisation } from "@/components/sections/Personalisation";
-import { SelectedPhotoRail } from "@/components/sections/SelectedPhotoRail";
+import { ClientsPreview } from "@/components/sections/ClientsPreview";
 import { CoachesSection } from "@/components/sections/CoachesSection";
 import { Experience } from "@/components/sections/Experience";
-import { ClientsPreview } from "@/components/sections/ClientsPreview";
 import { PackagesPreview } from "@/components/sections/PackagesPreview";
 import { TestimonialsPreview } from "@/components/sections/TestimonialsPreview";
 import { FinalCta } from "@/components/sections/FinalCta";
@@ -17,10 +16,9 @@ export default function HomePage() {
       <Hero />
       <NewPhaseWay />
       <Personalisation />
-      <SelectedPhotoRail />
+      <ClientsPreview />
       <CoachesSection />
       <Experience />
-      <ClientsPreview />
       <PackagesPreview />
       <TestimonialsPreview />
       <FinalCta />

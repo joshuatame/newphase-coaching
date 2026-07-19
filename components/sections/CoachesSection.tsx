@@ -88,7 +88,7 @@ export function CoachesSection() {
   return (
     <section
       id="coaches"
-      className="section-pad relative overflow-visible !py-6 md:!py-8"
+      className="relative overflow-visible py-3 md:py-4"
     >
       <div className="container-np">
         <Reveal>

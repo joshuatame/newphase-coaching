@@ -20,12 +20,8 @@ export default function TrainersPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Trainers"
-        title="The coaches"
-        intro="Black and white until you choose one — tap a coach to bring them forward and open their profile."
-      />
-      <section className="section-pad !pt-0">
+      <PageHeader eyebrow="Trainers" title="The coaches" />
+      <section className="pb-10 pt-0 md:pb-14">
         <div
           className={`container-np grid gap-8 md:gap-6 ${
             coaches.length <= 2 ? "md:grid-cols-2" : "md:grid-cols-3"

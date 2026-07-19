@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { SceneHandle } from "./DumbbellScene";
 import { ThreeErrorBoundary } from "./ThreeErrorBoundary";
 import { LogoMark } from "@/components/brand/LogoMark";
-import { assetUrl } from "@/lib/base-path";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const DumbbellScene = dynamic(
@@ -215,23 +214,12 @@ export function ScrollDumbbell() {
 
       <div
         ref={logoRef}
-        className="absolute inset-0 opacity-[0.12]"
+        className="absolute inset-0 flex items-center justify-center opacity-[0.12]"
       >
-        {/* Duo photo — left, matched to logo scale */}
-        <div className="absolute inset-y-0 left-0 flex items-center justify-start pl-[4%] md:pl-[6%] lg:pl-[7%]">
-          <img
-            src={assetUrl("/brand/bg-duo.png")}
-            alt=""
-            className="h-[min(42vh,200px)] w-[min(48vw,200px)] object-contain md:h-[min(58vh,420px)] md:w-[min(36vw,420px)]"
-          />
-        </div>
-        {/* NP mark — right */}
-        <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-[4%] md:pr-[6%] lg:pr-[8%]">
-          <LogoMark
-            glow="hero"
-            boxClassName="h-[min(42vh,200px)] w-[min(48vw,200px)] md:h-[min(58vh,420px)] md:w-[min(36vw,420px)]"
-          />
-        </div>
+        <LogoMark
+          glow="hero"
+          boxClassName="h-[min(48vh,240px)] w-[min(48vw,240px)] md:h-[min(62vh,460px)] md:w-[min(42vw,460px)]"
+        />
       </div>
 
       {showScene && (
@@ -243,20 +231,11 @@ export function ScrollDumbbell() {
       )}
 
       {mounted && (reducedMotion || !webglOk) && (
-        <div className="absolute inset-0 opacity-[0.14]">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-[4%] md:pl-[6%]">
-            <img
-              src={assetUrl("/brand/bg-duo.png")}
-              alt=""
-              className="h-[min(50vh,240px)] w-[min(60vw,240px)] object-contain md:h-[320px] md:w-[320px]"
-            />
-          </div>
-          <div className="absolute inset-y-0 right-0 flex items-center pr-[4%] md:pr-[10%]">
-            <LogoMark
-              glow="hero"
-              boxClassName="h-[min(50vh,240px)] w-[min(60vw,240px)] md:h-[320px] md:w-[320px]"
-            />
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.14]">
+          <LogoMark
+            glow="hero"
+            boxClassName="h-[min(52vh,280px)] w-[min(60vw,280px)] md:h-[360px] md:w-[360px]"
+          />
         </div>
       )}
     </div>

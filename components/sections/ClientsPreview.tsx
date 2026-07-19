@@ -16,7 +16,7 @@ export function ClientsPreview() {
   }));
 
   return (
-    <section className="section-pad relative overflow-hidden !py-6 md:!py-8">
+    <section className="relative overflow-hidden py-3 md:py-4">
       <div className="container-np">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeading
@@ -33,12 +33,12 @@ export function ClientsPreview() {
       </div>
 
       <Reveal>
-        <div className="mt-4 md:mt-6">
+        <div className="mt-3 md:mt-4">
           <PhotoCarousel slides={slides} />
         </div>
       </Reveal>
 
-      <div className="container-np mt-6 md:hidden">
+      <div className="container-np mt-4 md:hidden">
         <Link href="/clients/" className="btn btn-ghost w-full">
           All Clients
         </Link>
