@@ -11,7 +11,7 @@ export function Personalisation() {
         <div>
           <SectionHeading
             eyebrow="Truly Personalised"
-            title="Your programme, adjusted every single week"
+            title="Your program, adjusted every single week"
             intro="No two bodies respond the same way. Your plan is written for you and re-tuned continuously against your data, recovery and results."
           />
           <ul className="mt-6 space-y-3 md:mt-10 md:space-y-4">

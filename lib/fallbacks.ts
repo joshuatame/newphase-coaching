@@ -11,12 +11,12 @@ export const NEWPHASE_WAY = [
   },
   {
     title: "Architect",
-    body: "A programme engineered around your body and calendar. Training, nutrition and habits built to fit the life you actually live.",
+    body: "A program engineered around your body and calendar. Training, nutrition and habits built to fit the life you actually live.",
     index: "02",
   },
   {
     title: "Adapt",
-    body: "Weekly check-ins and data keep the plan honest. As you change, the programme changes with you.",
+    body: "Weekly check-ins and data keep the plan honest. As you change, the program changes with you.",
     index: "03",
   },
   {
@@ -28,7 +28,7 @@ export const NEWPHASE_WAY = [
 
 export const EXPERIENCE_GRID = [
   {
-    title: "1:1 Programmes",
+    title: "1:1 Programs",
     body: "Individually written training blocks updated to your recovery and progress — never a copy-paste plan.",
   },
   {
@@ -70,7 +70,7 @@ export const FALLBACK_PACKAGES: Package[] = [
     priceLabel: "From $149",
     interval: "/mo",
     features: [
-      { label: "Personalised training programme", included: true },
+      { label: "Personalised training program", included: true },
       { label: "Nutrition guidelines", included: true },
       { label: "Monthly check-in", included: true },
       { label: "In-app messaging", included: true },
@@ -90,7 +90,7 @@ export const FALLBACK_PACKAGES: Package[] = [
     interval: "/mo",
     featured: true,
     features: [
-      { label: "Personalised training programme", included: true },
+      { label: "Personalised training program", included: true },
       { label: "Custom nutrition system", included: true },
       { label: "Weekly 1:1 check-in", included: true },
       { label: "Direct coach messaging", included: true },
@@ -127,21 +127,21 @@ export const FALLBACK_FAQS: Faq[] = [
     id: "f1",
     question: "How does online coaching actually work?",
     answer:
-      "After you apply, we build a programme around your goals, schedule and equipment. You train using the app, log your sessions and check in each week. Your coach reviews everything and adjusts the plan so it keeps working.",
+      "After you apply, we build a program around your goals, schedule and equipment. You train using the app, log your sessions and check in each week. Your coach reviews everything and adjusts the plan so it keeps working.",
     order: 1,
   },
   {
     id: "f2",
     question: "Do I need a gym membership?",
     answer:
-      "No. We tailor your programme to whatever you have access to — a full gym, a home setup or minimal equipment. The plan is built around your reality.",
+      "No. We tailor your program to whatever you have access to — a full gym, a home setup or minimal equipment. The plan is built around your reality.",
     order: 2,
   },
   {
     id: "f3",
     question: "What if I'm a complete beginner?",
     answer:
-      "Perfect. Every programme starts from your current level with clear coaching on technique and progression. You'll never be left guessing.",
+      "Perfect. Every program starts from your current level with clear coaching on technique and progression. You'll never be left guessing.",
     order: 3,
   },
   {

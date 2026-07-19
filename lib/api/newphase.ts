@@ -13,14 +13,18 @@ import {
   APPLY_FORM_SETTING_KEY,
   mergeApplyFormConfig,
 } from "@/lib/apply-form";
+import { COACHES_SETTING_KEY, mergeCoaches } from "@/lib/coaches";
+import { GALLERY_SETTING_KEY, mergePhotoRail } from "@/lib/gallery";
 import type {
   ApplyFormConfig,
   AuthResponse,
   Client,
+  Coach,
   DashboardStats,
   Enquiry,
   EnquiryPayload,
   Faq,
+  GallerySlide,
   MediaUploadResponse,
   Package,
   PackageFeature,
@@ -116,6 +120,12 @@ function flatSiteFromByKey(byKey: Record<string, unknown>): SiteSettings {
   }
   if (byKey[APPLY_FORM_SETTING_KEY] !== undefined) {
     site.applyForm = mergeApplyFormConfig(byKey[APPLY_FORM_SETTING_KEY]);
+  }
+  if (byKey[COACHES_SETTING_KEY] !== undefined) {
+    site.coaches = mergeCoaches(byKey[COACHES_SETTING_KEY]);
+  }
+  if (byKey[GALLERY_SETTING_KEY] !== undefined) {
+    site.photoRail = mergePhotoRail(byKey[GALLERY_SETTING_KEY]);
   }
   return site;
 }
@@ -325,7 +335,7 @@ function toPackageDto(data: Partial<Package>) {
     description:
       data.description ||
       data.tagline ||
-      `${data.name || "Package"} coaching programme`,
+      `${data.name || "Package"} coaching program`,
     priceCents: priceCents ?? undefined,
     priceDisplay,
     currency: data.currency || "AUD",
@@ -743,7 +753,55 @@ export async function adminUpdateSite(
     );
   }
 
+  if (data.coaches !== undefined) {
+    await adminUpsertSetting(
+      {
+        key: COACHES_SETTING_KEY,
+        group: "coaches",
+        label: "Coach roster",
+        value: mergeCoaches(data.coaches),
+        valueType: "json",
+        isPublic: true,
+        sortOrder: 0,
+      },
+      rows,
+    );
+  }
+
+  if (data.photoRail !== undefined) {
+    await adminUpsertSetting(
+      {
+        key: GALLERY_SETTING_KEY,
+        group: "home",
+        label: "Homepage photo rail",
+        value: mergePhotoRail(data.photoRail),
+        valueType: "json",
+        isPublic: true,
+        sortOrder: 1,
+      },
+      rows,
+    );
+  }
+
   return adminGetSite();
+}
+
+export async function getCoaches(): Promise<Coach[]> {
+  try {
+    const site = await getSite();
+    return mergeCoaches(site?.coaches);
+  } catch {
+    return mergeCoaches();
+  }
+}
+
+export async function getPhotoRail(): Promise<GallerySlide[]> {
+  try {
+    const site = await getSite();
+    return mergePhotoRail(site?.photoRail);
+  } catch {
+    return mergePhotoRail();
+  }
 }
 
 export async function adminGetApplyForm(): Promise<ApplyFormConfig> {

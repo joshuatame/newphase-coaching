@@ -54,6 +54,23 @@ export interface SiteSettingRow {
   sortOrder?: number;
 }
 
+export interface Coach {
+  id: string;
+  slug: string;
+  name: string;
+  role: string;
+  bio: string;
+  imageUrl: string;
+  visible: boolean;
+  sortOrder?: number;
+}
+
+export interface GallerySlide {
+  id: string;
+  src: string;
+  label?: string;
+}
+
 export interface SiteSettings {
   id?: string;
   name?: string;
@@ -71,6 +88,8 @@ export interface SiteSettings {
   ctaLabel?: string;
   ctaHref?: string;
   applyForm?: ApplyFormConfig;
+  coaches?: Coach[];
+  photoRail?: GallerySlide[];
   [key: string]: unknown;
 }
 

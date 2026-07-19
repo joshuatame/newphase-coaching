@@ -2,98 +2,54 @@
 
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminButton, Field, TextArea, TextInput } from "@/components/admin/ui";
-import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import {
-  adminGetTrainerSection,
-  adminUpdateSection,
-} from "@/lib/api/newphase";
-import { apiFetch } from "@/lib/api/client";
-import type { Section } from "@/types/newphase";
-
-const EMPTY: Partial<Section> = {
-  key: "trainer",
-  eyebrow: "Your Coach",
-  title: "Meet the NewPhase coach",
-  subtitle: "",
-  body: "",
-  imageUrl: "",
-  ctaLabel: "Apply for coaching",
-  ctaHref: "/apply/",
-};
+  AdminButton,
+  Field,
+  TextArea,
+  TextInput,
+  Toggle,
+} from "@/components/admin/ui";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { DEFAULT_COACHES, mergeCoaches } from "@/lib/coaches";
+import { adminGetSite, adminUpdateSite } from "@/lib/api/newphase";
+import type { Coach } from "@/types/newphase";
 
 export default function AdminTrainerPage() {
-  const [form, setForm] = useState<Partial<Section>>(EMPTY);
-  const [sectionId, setSectionId] = useState<string | null>(null);
+  const [coaches, setCoaches] = useState<Coach[]>(DEFAULT_COACHES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      let trainer = await adminGetTrainerSection();
-      if (!trainer) {
-        await apiFetch("/newphase-coaching/admin/sections", {
-          method: "POST",
-          auth: true,
-          body: {
-            page: "home",
-            sectionKey: "trainer",
-            eyebrow: EMPTY.eyebrow,
-            title: EMPTY.title,
-            body: "Coach bio goes here.",
-            ctaLabel: EMPTY.ctaLabel,
-            ctaHref: EMPTY.ctaHref,
-            sortOrder: 2,
-            visible: true,
-          },
-        });
-        trainer = await adminGetTrainerSection();
-      }
-      if (trainer) {
-        setSectionId(trainer.id);
-        setForm({
-          eyebrow: trainer.eyebrow || "",
-          title: trainer.title || "",
-          subtitle: trainer.subtitle || "",
-          body: trainer.body || "",
-          imageUrl: trainer.imageUrl || "",
-          ctaLabel: trainer.ctaLabel || "Apply for coaching",
-          ctaHref: trainer.ctaHref || "/apply/",
-        });
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load trainer");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    load();
+    let active = true;
+    (async () => {
+      try {
+        const site = await adminGetSite();
+        if (active) setCoaches(mergeCoaches(site?.coaches));
+      } catch {
+        /* defaults */
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const set = (patch: Partial<Section>) =>
-    setForm((f) => ({ ...f, ...patch }));
+  const patch = (id: string, update: Partial<Coach>) =>
+    setCoaches((list) =>
+      list.map((c) => (c.id === id ? { ...c, ...update } : c)),
+    );
 
   const save = async () => {
-    if (!sectionId) {
-      setError("Trainer section is missing. Try refreshing.");
-      return;
-    }
-    if (!form.title?.trim()) {
-      setError("Title is required.");
-      return;
-    }
     setSaving(true);
     setMessage("");
     setError("");
     try {
-      await adminUpdateSection(sectionId, form);
-      setMessage("Trainer profile saved.");
-      await load();
+      await adminUpdateSite({ coaches: mergeCoaches(coaches) });
+      setMessage("Coach roster saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -111,67 +67,70 @@ export default function AdminTrainerPage() {
 
   return (
     <AdminShell title="Trainer">
-      <div className="max-w-2xl space-y-6">
+      <div className="max-w-3xl space-y-6">
         <p className="text-sm text-steel">
-          This profile appears on the homepage after the client photo carousel.
+          Homepage and /trainers show visible coaches with a photo and name.
+          Slot 3 is the optional third coach from the reference layout.
         </p>
 
-        <section className="space-y-4 rounded-2xl surface p-6">
-          {error && (
-            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              {error}
-            </p>
-          )}
-          <Field label="Eyebrow">
-            <TextInput
-              value={form.eyebrow || ""}
-              onChange={(e) => set({ eyebrow: e.target.value })}
-            />
-          </Field>
-          <Field label="Name / title">
-            <TextInput
-              value={form.title || ""}
-              onChange={(e) => set({ title: e.target.value })}
-            />
-          </Field>
-          <Field label="Role / subtitle">
-            <TextInput
-              value={form.subtitle || ""}
-              onChange={(e) => set({ subtitle: e.target.value })}
-              placeholder="e.g. Head Coach"
-            />
-          </Field>
-          <Field label="Bio">
-            <TextArea
-              rows={6}
-              value={form.body || ""}
-              onChange={(e) => set({ body: e.target.value })}
-            />
-          </Field>
-          <ImageUploadField
-            label="Profile photo"
-            value={form.imageUrl}
-            onChange={(url) => set({ imageUrl: url })}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="CTA label">
+        {error && (
+          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {error}
+          </p>
+        )}
+
+        {coaches.map((coach, index) => (
+          <section key={coach.id} className="space-y-4 rounded-2xl surface p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-xl tracking-wide text-off-white">
+                Coach slot {index + 1}
+              </h2>
+              <Toggle
+                checked={coach.visible}
+                onChange={(v) => patch(coach.id, { visible: v })}
+                label="Visible"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Name">
+                <TextInput
+                  value={coach.name}
+                  onChange={(e) => patch(coach.id, { name: e.target.value })}
+                  placeholder="Coach name"
+                />
+              </Field>
+              <Field label="Role / title">
+                <TextInput
+                  value={coach.role}
+                  onChange={(e) => patch(coach.id, { role: e.target.value })}
+                  placeholder="e.g. Head Coach"
+                />
+              </Field>
+            </div>
+            <Field label="Profile URL slug">
               <TextInput
-                value={form.ctaLabel || ""}
-                onChange={(e) => set({ ctaLabel: e.target.value })}
+                value={coach.slug}
+                onChange={(e) => patch(coach.id, { slug: e.target.value })}
               />
             </Field>
-            <Field label="CTA link">
-              <TextInput
-                value={form.ctaHref || ""}
-                onChange={(e) => set({ ctaHref: e.target.value })}
+            <Field label="Bio">
+              <TextArea
+                rows={4}
+                value={coach.bio}
+                onChange={(e) => patch(coach.id, { bio: e.target.value })}
               />
             </Field>
-          </div>
-        </section>
+            <ImageUploadField
+              label="Photo (black background preferred)"
+              value={coach.imageUrl || undefined}
+              onChange={(url) => patch(coach.id, { imageUrl: url })}
+            />
+          </section>
+        ))}
 
         <div className="flex items-center gap-4">
           <AdminButton onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save Trainer"}
+            {saving ? "Saving…" : "Save coaches"}
           </AdminButton>
           {message && <span className="text-sm text-accent">{message}</span>}
         </div>

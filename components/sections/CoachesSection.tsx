@@ -1,0 +1,132 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { Reveal } from "@/components/ui/Reveal";
+import { useAsync } from "@/lib/useAsync";
+import { getCoaches } from "@/lib/api/newphase";
+import {
+  DEFAULT_COACHES,
+  mergeCoaches,
+  resolveCoachImage,
+  visibleCoaches,
+} from "@/lib/coaches";
+import type { Coach } from "@/types/newphase";
+
+function CoachCard({
+  coach,
+  active,
+  onSelect,
+}: {
+  coach: Coach;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const src = resolveCoachImage(coach.imageUrl);
+
+  return (
+    <article className="group relative flex flex-col items-stretch">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={active}
+        className={`relative w-full overflow-hidden bg-obsidian text-left transition-transform duration-500 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+          active ? "z-10 scale-[1.04] md:scale-[1.06]" : "scale-100"
+        }`}
+      >
+        <div className="relative aspect-[3/4] w-full overflow-hidden">
+          {src ? (
+            <img
+              src={src}
+              alt={coach.name}
+              className={`h-full w-full object-contain object-bottom transition-[filter,transform] duration-500 ${
+                active
+                  ? "scale-105 grayscale-0"
+                  : "grayscale group-hover:grayscale-[40%]"
+              }`}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-near-black text-steel">
+              Photo coming soon
+            </div>
+          )}
+          <div
+            className={`pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-obsidian to-transparent transition-opacity duration-500 ${
+              active ? "opacity-80" : "opacity-40"
+            }`}
+          />
+        </div>
+      </button>
+
+      <div className="mt-5">
+        <h3 className="font-display text-2xl tracking-wide text-off-white md:text-3xl">
+          {coach.name.toUpperCase()}
+        </h3>
+        {coach.role && (
+          <p className="mt-1 text-sm text-soft-silver">{coach.role}</p>
+        )}
+      </div>
+
+      <div
+        className={`mt-4 overflow-hidden transition-all duration-500 ${
+          active ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <Link
+          href={`/trainers/profile/?c=${encodeURIComponent(coach.slug || coach.id)}`}
+          className="btn btn-primary !px-6 !py-3"
+        >
+          See profile
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+export function CoachesSection() {
+  const { data } = useAsync(getCoaches, DEFAULT_COACHES);
+  const coaches = visibleCoaches(mergeCoaches(data));
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  if (coaches.length === 0) return null;
+
+  return (
+    <section className="section-pad relative overflow-hidden bg-obsidian">
+      <div className="container-np">
+        <Reveal>
+          <p className="eyebrow mb-4 flex items-center gap-3">
+            <span className="h-px w-10 bg-accent" aria-hidden />
+            The Coaches
+          </p>
+          <h2 className="display-lg max-w-2xl text-4xl text-off-white md:text-5xl">
+            Meet the team behind your next phase
+          </h2>
+        </Reveal>
+
+        <div
+          className={`mt-10 grid gap-8 md:mt-14 md:gap-6 ${
+            coaches.length === 1
+              ? "md:grid-cols-1 md:max-w-md"
+              : coaches.length === 2
+                ? "md:grid-cols-2"
+                : "md:grid-cols-3"
+          }`}
+        >
+          {coaches.map((coach, i) => (
+            <Reveal key={coach.id} delay={i * 80}>
+              <CoachCard
+                coach={coach}
+                active={activeId === coach.id}
+                onSelect={() =>
+                  setActiveId((id) => (id === coach.id ? null : coach.id))
+                }
+              />
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default CoachesSection;

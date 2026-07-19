@@ -75,7 +75,7 @@ export const DEFAULT_APPLY_FORM: ApplyFormConfig = {
       key: "challenge",
       label: "What are you struggling with?",
       placeholder:
-        "Consistency, programme design, nutrition, accountability...",
+        "Consistency, program design, nutrition, accountability...",
       type: "textarea",
       required: false,
       visible: true,

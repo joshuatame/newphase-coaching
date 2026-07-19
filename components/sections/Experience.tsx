@@ -2,9 +2,21 @@
 
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Reveal } from "@/components/ui/Reveal";
+import { PhotoCarousel } from "@/components/ui/PhotoCarousel";
 import { EXPERIENCE_GRID } from "@/lib/fallbacks";
+import { useAsync } from "@/lib/useAsync";
+import { getPhotoRail } from "@/lib/api/newphase";
+import { DEFAULT_PHOTO_RAIL, mergePhotoRail } from "@/lib/gallery";
+import type { CarouselSlide } from "@/lib/carousel";
 
 export function Experience() {
+  const { data: rail } = useAsync(getPhotoRail, DEFAULT_PHOTO_RAIL);
+  const slides: CarouselSlide[] = mergePhotoRail(rail).map((s) => ({
+    id: s.id,
+    src: s.src,
+    label: s.label || "",
+  }));
+
   return (
     <section className="section-pad relative">
       <div className="container-np">
@@ -18,7 +30,7 @@ export function Experience() {
           {EXPERIENCE_GRID.map((item, i) => (
             <Reveal key={item.title} delay={(i % 3) * 80} as="article">
               <div className="group h-full bg-near-black p-5 transition-colors duration-500 hover:bg-carbon md:p-8">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-graphite text-accent transition-colors duration-500 group-hover:bg-accent group-hover:text-obsidian md:h-11 md:w-11">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-graphite text-accent transition-colors duration-500 group-hover:bg-accent group-hover:text-off-white md:h-11 md:w-11">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
                     <path
                       d="M5 12h14m-6-6l6 6-6 6"
@@ -40,6 +52,14 @@ export function Experience() {
           ))}
         </div>
       </div>
+
+      {slides.length > 0 && (
+        <Reveal>
+          <div className="mt-8 md:mt-14">
+            <PhotoCarousel slides={slides} />
+          </div>
+        </Reveal>
+      )}
     </section>
   );
 }

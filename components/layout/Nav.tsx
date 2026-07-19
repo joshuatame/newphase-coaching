@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand/LogoMark";
-import { assetUrl } from "@/lib/base-path";
 
 const LINKS = [
   { href: "/", label: "Home" },
+  { href: "/trainers/", label: "Trainer" },
   { href: "/clients/", label: "Clients" },
   { href: "/testimonials/", label: "Testimonials" },
   { href: "/packages/", label: "Packages" },
@@ -52,17 +52,6 @@ export function Nav() {
             className="group flex items-center gap-2.5 text-off-white"
             aria-label="NewPhase Coaching home"
           >
-            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-[color:var(--edge-strong)]">
-              <img
-                src={assetUrl("/brand/nav-duo.png")}
-                alt=""
-                width={72}
-                height={72}
-                decoding="async"
-                fetchPriority="high"
-                className="h-full w-full object-cover object-center"
-              />
-            </span>
             <LogoMark boxClassName="h-9 w-9" priority />
             <span className="font-display text-2xl tracking-wide">
               NEW<span className="text-accent">PHASE</span>
@@ -118,7 +107,6 @@ export function Nav() {
         </nav>
       </header>
 
-      {/* Mobile fullscreen menu */}
       <div
         className={`fixed inset-0 z-40 flex flex-col justify-center bg-obsidian px-8 transition-all duration-500 md:hidden ${
           open
@@ -127,16 +115,7 @@ export function Nav() {
         }`}
       >
         <ul className="space-y-3">
-          <li className="mb-8 flex items-center gap-3">
-            <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full ring-1 ring-[color:var(--edge-strong)]">
-              <img
-                src={assetUrl("/brand/nav-duo.png")}
-                alt=""
-                width={128}
-                height={128}
-                className="h-full w-full object-cover"
-              />
-            </span>
+          <li className="mb-8">
             <LogoMark boxClassName="h-16 w-16" glow="hero" />
           </li>
           {LINKS.map((l, i) => (

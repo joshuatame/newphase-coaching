@@ -10,12 +10,20 @@ import {
   Toggle,
 } from "@/components/admin/ui";
 import { DEFAULT_APPLY_FORM, mergeApplyFormConfig } from "@/lib/apply-form";
+import { DEFAULT_PHOTO_RAIL, mergePhotoRail } from "@/lib/gallery";
 import { adminGetApplyForm, adminGetSite, adminUpdateSite } from "@/lib/api/newphase";
-import type { ApplyFormConfig, ApplyFormField, SiteSettings } from "@/types/newphase";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import type {
+  ApplyFormConfig,
+  ApplyFormField,
+  GallerySlide,
+  SiteSettings,
+} from "@/types/newphase";
 
 export default function AdminSettingsPage() {
   const [site, setSite] = useState<SiteSettings>({});
   const [applyForm, setApplyForm] = useState<ApplyFormConfig>(DEFAULT_APPLY_FORM);
+  const [photoRail, setPhotoRail] = useState<GallerySlide[]>(DEFAULT_PHOTO_RAIL);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -30,7 +38,10 @@ export default function AdminSettingsPage() {
           adminGetApplyForm(),
         ]);
         if (!active) return;
-        if (siteData) setSite(siteData);
+        if (siteData) {
+          setSite(siteData);
+          setPhotoRail(mergePhotoRail(siteData.photoRail));
+        }
         setApplyForm(formData);
       } catch {
         /* new site — start with defaults */
@@ -57,12 +68,32 @@ export default function AdminSettingsPage() {
       ),
     }));
 
+  const patchSlide = (id: string, patch: Partial<GallerySlide>) =>
+    setPhotoRail((slides) =>
+      slides.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    );
+
+  const addSlide = () =>
+    setPhotoRail((slides) => [
+      ...slides,
+      { id: `slide-${Date.now()}`, src: "", label: "" },
+    ]);
+
+  const removeSlide = (id: string) =>
+    setPhotoRail((slides) => slides.filter((s) => s.id !== id));
+
   const save = async () => {
     setSaving(true);
     setMessage("");
     setError("");
     try {
-      await adminUpdateSite({ ...site, applyForm: mergeApplyFormConfig(applyForm) });
+      await adminUpdateSite({
+        ...site,
+        applyForm: mergeApplyFormConfig(applyForm),
+        photoRail: mergePhotoRail(
+          photoRail.filter((s) => Boolean(s.src?.trim())),
+        ),
+      });
       setMessage("Settings saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -140,6 +171,61 @@ export default function AdminSettingsPage() {
                 onChange={(e) => set({ tiktok: e.target.value })}
               />
             </Field>
+          </div>
+        </section>
+
+        <section className="rounded-2xl surface p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl tracking-wide text-off-white">
+                Experience photo rail
+              </h2>
+              <p className="mt-1 text-sm text-steel">
+                Scrolls under the &ldquo;Everything you need in one system&rdquo;
+                cards on the homepage.
+              </p>
+            </div>
+            <AdminButton variant="ghost" onClick={addSlide}>
+              + Add photo
+            </AdminButton>
+          </div>
+          <div className="mt-5 space-y-4">
+            {photoRail.map((slide, i) => (
+              <div
+                key={slide.id}
+                className="rounded-xl border border-[color:var(--edge)] bg-near-black/40 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-sm text-off-white">Photo {i + 1}</p>
+                  <AdminButton
+                    variant="danger"
+                    onClick={() => removeSlide(slide.id)}
+                  >
+                    Remove
+                  </AdminButton>
+                </div>
+                <ImageUploadField
+                  label="Image"
+                  value={slide.src || undefined}
+                  onChange={(url) => patchSlide(slide.id, { src: url })}
+                />
+                <div className="mt-3">
+                  <Field label="Label (optional)">
+                    <TextInput
+                      value={slide.label || ""}
+                      onChange={(e) =>
+                        patchSlide(slide.id, { label: e.target.value })
+                      }
+                    />
+                  </Field>
+                </div>
+              </div>
+            ))}
+            {photoRail.length === 0 && (
+              <p className="text-sm text-steel">
+                No photos yet. Add photos to show the rail on the homepage.
+              </p>
+            )}
           </div>
         </section>
 
