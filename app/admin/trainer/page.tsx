@@ -12,7 +12,7 @@ import {
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { DEFAULT_COACHES, mergeCoaches } from "@/lib/coaches";
 import { adminGetSite, adminUpdateSite } from "@/lib/api/newphase";
-import type { Coach } from "@/types/newphase";
+import type { Coach, CoachCategory } from "@/types/newphase";
 
 export default function AdminTrainerPage() {
   const [coaches, setCoaches] = useState<Coach[]>(DEFAULT_COACHES);
@@ -43,6 +43,47 @@ export default function AdminTrainerPage() {
       list.map((c) => (c.id === id ? { ...c, ...update } : c)),
     );
 
+  const patchCategory = (
+    coachId: string,
+    index: number,
+    update: Partial<CoachCategory>,
+  ) =>
+    setCoaches((list) =>
+      list.map((c) => {
+        if (c.id !== coachId) return c;
+        const categories = [...(c.categories || [])];
+        categories[index] = { ...categories[index], ...update };
+        return { ...c, categories };
+      }),
+    );
+
+  const addCategory = (coachId: string) =>
+    setCoaches((list) =>
+      list.map((c) =>
+        c.id === coachId
+          ? {
+              ...c,
+              categories: [
+                ...(c.categories || []),
+                { label: "New category", body: "" },
+              ],
+            }
+          : c,
+      ),
+    );
+
+  const removeCategory = (coachId: string, index: number) =>
+    setCoaches((list) =>
+      list.map((c) =>
+        c.id === coachId
+          ? {
+              ...c,
+              categories: (c.categories || []).filter((_, i) => i !== index),
+            }
+          : c,
+      ),
+    );
+
   const save = async () => {
     setSaving(true);
     setMessage("");
@@ -69,8 +110,8 @@ export default function AdminTrainerPage() {
     <AdminShell title="Trainer">
       <div className="max-w-3xl space-y-6">
         <p className="text-sm text-steel">
-          Homepage and /trainers show visible coaches with a photo and name.
-          Slot 3 is the optional third coach from the reference layout.
+          Profile pages use hero-style names (first white, last red) with photo
+          on the left and category blocks on the right.
         </p>
 
         {error && (
@@ -92,11 +133,11 @@ export default function AdminTrainerPage() {
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name">
+              <Field label="Full name (last word shows in red)">
                 <TextInput
                   value={coach.name}
                   onChange={(e) => patch(coach.id, { name: e.target.value })}
-                  placeholder="Coach name"
+                  placeholder="Coach Siegwalt"
                 />
               </Field>
               <Field label="Role / title">
@@ -125,6 +166,57 @@ export default function AdminTrainerPage() {
               value={coach.imageUrl || undefined}
               onChange={(url) => patch(coach.id, { imageUrl: url })}
             />
+
+            <div className="border-t border-[color:var(--edge)] pt-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-xs uppercase tracking-[0.2em] text-steel">
+                  Profile categories
+                </h3>
+                <AdminButton
+                  variant="ghost"
+                  onClick={() => addCategory(coach.id)}
+                >
+                  + Add
+                </AdminButton>
+              </div>
+              <div className="space-y-3">
+                {(coach.categories || []).map((cat, i) => (
+                  <div
+                    key={`${coach.id}-cat-${i}`}
+                    className="rounded-xl border border-[color:var(--edge)] bg-near-black/40 p-4"
+                  >
+                    <div className="mb-2 flex justify-end">
+                      <AdminButton
+                        variant="danger"
+                        onClick={() => removeCategory(coach.id, i)}
+                      >
+                        Remove
+                      </AdminButton>
+                    </div>
+                    <Field label="Category title">
+                      <TextInput
+                        value={cat.label}
+                        onChange={(e) =>
+                          patchCategory(coach.id, i, { label: e.target.value })
+                        }
+                        placeholder="Achievements"
+                      />
+                    </Field>
+                    <div className="mt-3">
+                      <Field label="Text">
+                        <TextArea
+                          rows={3}
+                          value={cat.body}
+                          onChange={(e) =>
+                            patchCategory(coach.id, i, { body: e.target.value })
+                          }
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
         ))}
 

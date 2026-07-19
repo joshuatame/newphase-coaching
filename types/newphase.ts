@@ -54,6 +54,11 @@ export interface SiteSettingRow {
   sortOrder?: number;
 }
 
+export interface CoachCategory {
+  label: string;
+  body: string;
+}
+
 export interface Coach {
   id: string;
   slug: string;
@@ -63,6 +68,8 @@ export interface Coach {
   imageUrl: string;
   visible: boolean;
   sortOrder?: number;
+  /** Profile detail blocks — Achievements, Specialty, Education, etc. */
+  categories?: CoachCategory[];
 }
 
 export interface GallerySlide {

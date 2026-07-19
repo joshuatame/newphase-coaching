@@ -1,7 +1,18 @@
 import { assetUrl } from "@/lib/base-path";
-import type { Coach } from "@/types/newphase";
+import type { Coach, CoachCategory } from "@/types/newphase";
 
 export const COACHES_SETTING_KEY = "coaches.roster";
+
+export const DEFAULT_CATEGORY_LABELS = [
+  "Achievements",
+  "Specialty",
+  "Education",
+  "Certifications",
+  "Experience",
+] as const;
+
+const emptyCategories = (): CoachCategory[] =>
+  DEFAULT_CATEGORY_LABELS.map((label) => ({ label, body: "" }));
 
 export const DEFAULT_COACHES: Coach[] = [
   {
@@ -13,6 +24,28 @@ export const DEFAULT_COACHES: Coach[] = [
     imageUrl: "/brand/coaches/siegwalt.png",
     visible: true,
     sortOrder: 0,
+    categories: [
+      {
+        label: "Achievements",
+        body: "Competitive physique background with proven client transformations across strength and recomposition goals.",
+      },
+      {
+        label: "Specialty",
+        body: "Hypertrophy programming, body composition, and progressive overload systems built for real life.",
+      },
+      {
+        label: "Education",
+        body: "Ongoing study in exercise science, program design and performance nutrition.",
+      },
+      {
+        label: "Certifications",
+        body: "Industry-recognised coaching credentials with continuing education in programming and nutrition.",
+      },
+      {
+        label: "Experience",
+        body: "Years on the gym floor coaching athletes and everyday clients through every phase of progress.",
+      },
+    ],
   },
   {
     id: "hadley",
@@ -23,6 +56,28 @@ export const DEFAULT_COACHES: Coach[] = [
     imageUrl: "/brand/coaches/hadley.png",
     visible: true,
     sortOrder: 1,
+    categories: [
+      {
+        label: "Achievements",
+        body: "Track record of client strength gains, lean mass improvements and long-term adherence.",
+      },
+      {
+        label: "Specialty",
+        body: "Performance coaching, technique refinement and sustainable nutrition strategies.",
+      },
+      {
+        label: "Education",
+        body: "Focused training in strength & conditioning principles and applied coaching practice.",
+      },
+      {
+        label: "Certifications",
+        body: "Accredited coaching qualifications with specialised continuous learning.",
+      },
+      {
+        label: "Experience",
+        body: "Hands-on coaching across beginner through advanced athletes in online and in-person settings.",
+      },
+    ],
   },
   {
     id: "coach-3",
@@ -33,8 +88,34 @@ export const DEFAULT_COACHES: Coach[] = [
     imageUrl: "",
     visible: false,
     sortOrder: 2,
+    categories: emptyCategories(),
   },
 ];
+
+function mergeCategories(
+  defaults: CoachCategory[] | undefined,
+  incoming: unknown,
+): CoachCategory[] {
+  const base =
+    defaults && defaults.length > 0 ? defaults : emptyCategories();
+  if (!Array.isArray(incoming) || incoming.length === 0) {
+    return base.map((c) => ({ ...c }));
+  }
+  return incoming
+    .map((item, i) => {
+      if (!item || typeof item !== "object") return null;
+      const c = item as Partial<CoachCategory>;
+      const fallback = base[i] || { label: `Category ${i + 1}`, body: "" };
+      return {
+        label:
+          typeof c.label === "string" && c.label.trim()
+            ? c.label
+            : fallback.label,
+        body: typeof c.body === "string" ? c.body : fallback.body,
+      } satisfies CoachCategory;
+    })
+    .filter(Boolean) as CoachCategory[];
+}
 
 export function mergeCoaches(raw?: unknown): Coach[] {
   const incoming = Array.isArray(raw) ? (raw as Partial<Coach>[]) : [];
@@ -46,7 +127,7 @@ export function mergeCoaches(raw?: unknown): Coach[] {
 
   const merged = DEFAULT_COACHES.map((def) => {
     const patch = byId.get(def.id);
-    if (!patch) return { ...def };
+    if (!patch) return { ...def, categories: def.categories?.map((c) => ({ ...c })) };
     return {
       ...def,
       ...patch,
@@ -60,6 +141,7 @@ export function mergeCoaches(raw?: unknown): Coach[] {
       visible: patch.visible !== undefined ? Boolean(patch.visible) : def.visible,
       sortOrder:
         typeof patch.sortOrder === "number" ? patch.sortOrder : def.sortOrder,
+      categories: mergeCategories(def.categories, patch.categories),
     };
   });
 
@@ -74,6 +156,7 @@ export function mergeCoaches(raw?: unknown): Coach[] {
       imageUrl: String(c.imageUrl || ""),
       visible: c.visible !== false,
       sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : merged.length,
+      categories: mergeCategories(emptyCategories(), c.categories),
     });
   }
 
@@ -95,4 +178,21 @@ export function resolveCoachImage(url?: string) {
     return url;
   }
   return assetUrl(url.startsWith("/") ? url : `/${url}`);
+}
+
+/** Split display name for hero styling — first token(s) white, last token red. */
+export function splitCoachName(name: string): { first: string; last: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first: "", last: "" };
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return {
+    first: parts.slice(0, -1).join(" "),
+    last: parts[parts.length - 1],
+  };
+}
+
+export function filledCategories(coach: Coach): CoachCategory[] {
+  return (coach.categories || []).filter(
+    (c) => c.label.trim() && c.body.trim(),
+  );
 }
