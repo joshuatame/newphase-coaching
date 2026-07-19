@@ -8,10 +8,12 @@ import { PackagesPreview } from "@/components/sections/PackagesPreview";
 import { TestimonialsPreview } from "@/components/sections/TestimonialsPreview";
 import { FinalCta } from "@/components/sections/FinalCta";
 import { Preloader } from "@/components/ui/Preloader";
+import { ScrollDumbbell } from "@/components/3d/ScrollDumbbell";
 
 export default function HomePage() {
   return (
     <>
+      <ScrollDumbbell />
       <Preloader />
       <Hero />
       <NewPhaseWay />
