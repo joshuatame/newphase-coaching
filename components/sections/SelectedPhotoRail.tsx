@@ -19,7 +19,7 @@ export function SelectedPhotoRail() {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative overflow-hidden pb-4 md:pb-8">
+    <section className="relative overflow-hidden py-2 md:py-3">
       <Reveal>
         <PhotoCarousel slides={slides} />
       </Reveal>

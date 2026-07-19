@@ -34,19 +34,19 @@ function CoachCard({
           active ? "z-10 scale-[1.04] md:scale-[1.06]" : "scale-100"
         }`}
       >
-        <div className="relative aspect-[3/4] w-full bg-transparent">
+        <div className="relative w-full bg-transparent">
           {src ? (
             <img
               src={src}
               alt={coach.name}
-              className={`h-full w-full object-contain object-bottom transition-[filter,transform] duration-500 ${
+              className={`mx-auto h-auto max-h-[52vh] w-full object-contain object-bottom transition-[filter,transform] duration-500 md:max-h-[60vh] ${
                 active
                   ? "scale-105 grayscale-0"
                   : "grayscale group-hover:grayscale-[40%]"
               }`}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-steel">
+            <div className="flex h-40 items-center justify-center text-steel">
               Photo coming soon
             </div>
           )}
@@ -86,10 +86,10 @@ export function CoachesSection() {
   if (coaches.length === 0) return null;
 
   return (
-    <section className="section-pad relative overflow-visible !pb-8 md:!pb-12">
+    <section className="section-pad relative overflow-visible !py-6 md:!py-8">
       <div className="container-np">
         <Reveal>
-          <p className="eyebrow mb-3 flex items-center gap-3 md:mb-4">
+          <p className="eyebrow mb-2 flex items-center gap-3 md:mb-3">
             <span className="h-px w-10 bg-accent" aria-hidden />
             The Coaches
           </p>
@@ -99,7 +99,7 @@ export function CoachesSection() {
         </Reveal>
 
         <div
-          className={`mt-5 grid gap-6 md:mt-7 md:gap-6 ${
+          className={`mt-3 grid gap-4 md:mt-4 md:gap-5 ${
             coaches.length === 1
               ? "md:max-w-md md:grid-cols-1"
               : coaches.length === 2

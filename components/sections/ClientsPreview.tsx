@@ -16,9 +16,9 @@ export function ClientsPreview() {
   }));
 
   return (
-    <section className="section-pad relative overflow-hidden !pt-0">
+    <section className="section-pad relative overflow-hidden !py-6 md:!py-8">
       <div className="container-np">
-        <div className="flex flex-wrap items-end justify-between gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeading
             eyebrow="Real Transformations"
             title="Results that speak for themselves"
@@ -33,7 +33,7 @@ export function ClientsPreview() {
       </div>
 
       <Reveal>
-        <div className="mt-6 md:mt-14">
+        <div className="mt-4 md:mt-6">
           <PhotoCarousel slides={slides} />
         </div>
       </Reveal>

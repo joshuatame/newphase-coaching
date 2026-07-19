@@ -14,7 +14,7 @@ export function NewPhaseWay() {
           intro="Four principles turn effort into transformation. This is how every client gets to their next phase."
         />
 
-        <div className="mt-8 grid gap-4 md:mt-16 md:grid-cols-2 md:gap-5 lg:grid-cols-4">
+        <div className="mt-5 grid gap-4 md:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-4">
           {NEWPHASE_WAY.map((item, i) => (
             <Reveal key={item.title} delay={i * 90} as="article">
               <div className="surface group h-full rounded-2xl p-5 transition-colors duration-500 hover:border-[color:var(--edge-strong)] md:p-8">

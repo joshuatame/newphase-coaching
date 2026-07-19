@@ -22,7 +22,7 @@ export function SectionHeading({
     >
       {eyebrow && (
         <Reveal>
-          <p className="eyebrow mb-4 flex items-center gap-3">
+          <p className="eyebrow mb-2 flex items-center gap-3 md:mb-3">
             {align === "center" && (
               <span className="h-px w-8 bg-accent/60" aria-hidden />
             )}
@@ -36,7 +36,7 @@ export function SectionHeading({
       </Reveal>
       {intro && (
         <Reveal delay={160}>
-          <p className="mt-3 text-base leading-relaxed text-steel md:mt-5 md:text-lg">
+          <p className="mt-2 text-base leading-relaxed text-steel md:mt-3 md:text-lg">
             {intro}
           </p>
         </Reveal>

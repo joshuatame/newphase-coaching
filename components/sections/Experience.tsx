@@ -14,7 +14,7 @@ export function Experience() {
           intro="Coaching that goes far beyond a workout PDF — a complete performance environment behind you."
         />
 
-        <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-[color:var(--edge)] bg-[color:var(--edge)] sm:grid-cols-2 md:mt-16 lg:grid-cols-3">
+        <div className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-[color:var(--edge)] bg-[color:var(--edge)] sm:grid-cols-2 md:mt-8 lg:grid-cols-3">
           {EXPERIENCE_GRID.map((item, i) => (
             <Reveal key={item.title} delay={(i % 3) * 80} as="article">
               <div className="group h-full bg-near-black p-5 transition-colors duration-500 hover:bg-carbon md:p-8">

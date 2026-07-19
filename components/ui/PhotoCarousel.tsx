@@ -157,7 +157,7 @@ export function PhotoCarousel({
           ))}
         </div>
       </div>
-      <p className="mt-4 text-center text-[0.7rem] uppercase tracking-[0.22em] text-steel">
+      <p className="mt-2 text-center text-[0.65rem] uppercase tracking-[0.22em] text-steel">
         Drag to scroll · auto-plays
       </p>
     </div>

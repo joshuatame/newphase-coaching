@@ -30,7 +30,7 @@ export function PackagesPreview() {
           intro="Every package is built on the same personalised foundation. Pick the level of accountability that fits where you are right now."
         />
 
-        <div className={`mt-8 md:mt-16 ${packageGridClass(sorted.length)}`}>
+        <div className={`mt-5 md:mt-8 ${packageGridClass(sorted.length)}`}>
           {sorted.map((pkg, i) => (
             <Reveal key={pkg.id} delay={Math.min(i, 5) * 90}>
               <PackageCard pkg={pkg} />
