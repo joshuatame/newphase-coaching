@@ -104,67 +104,93 @@ export function ScrollDumbbell() {
         if (cancelled || !handle.group) return;
         const g = handle.group;
         const wrap = canvasWrapRef.current;
+        const coaches = document.getElementById("coaches");
 
+        const startX = isMobile ? 0.35 : 1.15;
         gsap.set(g.scale, { x: 1, y: 1, z: 1 });
         gsap.set(g.position, {
-          x: isMobile ? 0 : 1.15,
+          x: startX,
           y: isMobile ? -0.15 : 0.1,
           z: 0,
         });
         if (wrap) gsap.set(wrap, { opacity: 1 });
 
         ctx = gsap.context(() => {
+          // Grow through the upper page, then exit right as Coaches enters.
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: document.documentElement,
               start: "top top",
-              end: "bottom bottom",
-              scrub: 1.15,
+              endTrigger: coaches || undefined,
+              end: coaches ? "top 45%" : "+=1800",
+              scrub: 1.1,
               invalidateOnRefresh: true,
             },
           });
 
-          tl.to(g.scale, { x: 1.25, y: 1.25, z: 1.25, ease: "none" }, 0).to(
+          // Early scroll — gentle grow, still on the right
+          tl.to(
+            g.scale,
+            { x: 1.35, y: 1.35, z: 1.35, ease: "none" },
+            0,
+          ).to(
             g.position,
             {
-              x: isMobile ? 0 : 0.9,
-              y: 0.15,
-              z: 0.35,
+              x: isMobile ? 0.55 : 1.35,
+              y: isMobile ? -0.05 : 0.12,
+              z: 0.25,
               ease: "none",
             },
             0,
           );
 
-          tl.to(g.scale, { x: 1.7, y: 1.7, z: 1.7, ease: "none" }, 0.4).to(
+          // Mid — a bit larger, still framed
+          tl.to(
+            g.scale,
+            { x: 1.65, y: 1.65, z: 1.65, ease: "none" },
+            0.45,
+          ).to(
             g.position,
             {
-              x: isMobile ? 0 : 0.35,
-              y: 0.2,
-              z: 1.4,
+              x: isMobile ? 0.9 : 1.7,
+              y: 0.1,
+              z: 0.45,
               ease: "none",
             },
-            0.4,
+            0.45,
           );
 
-          tl.to(g.scale, { x: 2.4, y: 2.4, z: 2.4, ease: "power1.in" }, 0.7).to(
+          // Final — slide off the right edge as Coaches arrives
+          tl.to(
+            g.scale,
+            { x: 1.85, y: 1.85, z: 1.85, ease: "power1.in" },
+            0.72,
+          ).to(
             g.position,
-            { x: 0, y: 0.25, z: 3.2, ease: "power2.in" },
-            0.7,
+            {
+              x: isMobile ? 5.5 : 8.5,
+              y: 0.15,
+              z: 0.6,
+              ease: "power2.in",
+            },
+            0.72,
           );
 
           if (wrap) {
-            tl.to(wrap, { opacity: 0, ease: "power1.in" }, 0.84);
+            tl.to(wrap, { opacity: 0, ease: "power1.in" }, 0.78);
           }
 
           if (logo) {
-            tl.to(logo, { opacity: 0.18, scale: 0.98, ease: "none" }, 0.55).to(
+            tl.to(logo, { opacity: 0.2, scale: 0.98, ease: "none" }, 0.5).to(
               logo,
-              { opacity: 0.36, scale: 1.04, ease: "power1.out" },
-              0.78,
+              { opacity: 0.38, scale: 1.03, ease: "power1.out" },
+              0.75,
             );
           }
         });
 
+        // Recalculate once fonts/images settle (coaches height can shift)
+        requestAnimationFrame(() => ScrollTrigger.refresh());
         ScrollTrigger.refresh();
       } catch (err) {
         console.warn("[NewPhase 3D] scroll animation skipped:", err);

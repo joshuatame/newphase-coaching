@@ -86,7 +86,10 @@ export function CoachesSection() {
   if (coaches.length === 0) return null;
 
   return (
-    <section className="section-pad relative overflow-visible !py-6 md:!py-8">
+    <section
+      id="coaches"
+      className="section-pad relative overflow-visible !py-6 md:!py-8"
+    >
       <div className="container-np">
         <Reveal>
           <p className="eyebrow mb-2 flex items-center gap-3 md:mb-3">
