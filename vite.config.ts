@@ -1,10 +1,17 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const appBase = (env.VITE_APP_BASE_PATH || '/clients/newphase-coaching')
+    .replace(/^\/?/, '/')
+    .replace(/\/?$/, '/')
+
+  return {
+  base: appBase,
   plugins: [
     react(),
     tailwindcss(),
@@ -20,8 +27,8 @@ export default defineConfig({
         background_color: '#000000',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: appBase,
+        start_url: appBase,
         icons: [
           {
             src: 'assets/logo-np.png',
@@ -79,5 +86,6 @@ export default defineConfig({
   },
   server: {
     port: 5173
+  }
   }
 })

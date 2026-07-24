@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 
-const LIGHTNING_BG = '/assets/lightning-bg.png'
-const LOGO_NP = '/assets/logo-np.png'
+const LIGHTNING_BG = `${import.meta.env.BASE_URL}assets/lightning-bg.png`
+const LOGO_NP = `${import.meta.env.BASE_URL}assets/logo-np.png`
 
 export function LoginPage() {
   const { inviteError } = useAuth()
