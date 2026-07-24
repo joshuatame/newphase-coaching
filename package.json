@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node scripts/generate-firebase-sw.js && vite",
     "build": "node scripts/generate-firebase-sw.js && tsc && vite build",
+    "postbuild": "node scripts/prepare-firebase-hosting.js",
     "preview": "vite preview",
     "seed:foods": "npx tsx scripts/seed-foods.ts",
     "seed:exercises": "npx tsx scripts/seed-exercises.ts",
@@ -14,7 +15,7 @@
     "create-admin": "npx tsx scripts/create-admin-user.ts",
     "add-invite": "npx tsx scripts/add-invite.ts",
     "setup-postmark": "npx tsx scripts/setup-postmark.ts",
-    "deploy": "firebase deploy",
+    "deploy": "npm run build && firebase deploy",
     "deploy:firestore": "firebase deploy --only firestore",
     "deploy:storage": "firebase deploy --only storage",
     "deploy:functions": "cd functions && npm run build && firebase deploy --only functions"

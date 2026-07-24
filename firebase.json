@@ -11,8 +11,20 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "public": "dist",
+    "public": "firebase-dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{"source": "**", "destination": "/index.html"}]
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/clients/newphase-coaching/",
+        "type": 302
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/clients/newphase-coaching/**",
+        "destination": "/clients/newphase-coaching/index.html"
+      }
+    ]
   }
 }
