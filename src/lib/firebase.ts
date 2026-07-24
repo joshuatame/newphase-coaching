@@ -67,7 +67,10 @@ export async function getFCMToken(): Promise<string | null> {
       console.warn('Push notifications require a browser that supports service workers')
       return null
     }
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+    const registration = await navigator.serviceWorker.register(
+      `${import.meta.env.BASE_URL}firebase-messaging-sw.js`,
+      { scope: import.meta.env.BASE_URL },
+    )
     await registration.update()
     return await getToken(messaging, {
       vapidKey,

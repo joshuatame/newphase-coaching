@@ -14,6 +14,8 @@ const projectId = process.env.VITE_FIREBASE_PROJECT_ID || ''
 const storageBucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || ''
 const messagingSenderId = process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || ''
 const appId = process.env.VITE_FIREBASE_APP_ID || ''
+const appBasePath = `/${(process.env.VITE_APP_BASE_PATH || 'clients/newphase-coaching')
+  .replace(/^\/+|\/+$/g, '')}`
 
 if (!projectId || !messagingSenderId) {
   console.warn('Firebase config missing. Set VITE_FIREBASE_* in .env. Skipping firebase-messaging-sw.js')
@@ -38,8 +40,8 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload?.notification?.title ?? 'Newphase Coaching';
   const options = {
     body: payload?.notification?.body ?? '',
-    icon: '/assets/logo-np.png',
-    badge: '/assets/logo-np.png',
+    icon: '${appBasePath}/assets/logo-np.png',
+    badge: '${appBasePath}/assets/logo-np.png',
     data: payload?.data ?? {}
   };
   return self.registration.showNotification(title, options);
@@ -47,7 +49,10 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification?.data?.screen ? event.notification.data.screen : '/';
+  const screen = event.notification?.data?.screen ?? '/';
+  const url = screen.startsWith('${appBasePath}/')
+    ? screen
+    : '${appBasePath}' + (screen.startsWith('/') ? screen : '/' + screen);
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
