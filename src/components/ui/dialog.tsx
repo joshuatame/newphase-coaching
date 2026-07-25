@@ -26,18 +26,25 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showClose?: boolean }
->(({ className, children, showClose = true, ...props }, ref) => (
+>(({ className, children, showClose = true, onOpenAutoFocus, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       data-dialog-content
       className={cn(
-        'fixed left-1/2 top-[18%] sm:top-1/2 z-[9999] grid w-[calc(100vw-2rem)] max-w-lg max-h-[78vh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden -translate-x-1/2 -translate-y-0 sm:-translate-y-1/2 gap-4 border border-border bg-card p-6 shadow-xl duration-200 cursor-default text-foreground',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl',
-        'relative mx-0 isolate',
+        'fixed left-1/2 top-3 sm:top-6 z-[9999] grid w-[calc(100vw-2rem)] max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overflow-x-hidden -translate-x-1/2 -translate-y-0 gap-4 border border-border bg-card p-6 shadow-xl duration-200 cursor-default text-foreground',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[4%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[4%] sm:rounded-2xl',
+        'relative mx-0',
         className
       )}
+      onOpenAutoFocus={(event) => {
+        onOpenAutoFocus?.(event)
+        if (!event.defaultPrevented) {
+          const content = event.currentTarget as HTMLElement
+          content.scrollTop = 0
+        }
+      }}
       {...props}
     >
       {showClose && (

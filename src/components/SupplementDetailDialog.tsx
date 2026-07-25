@@ -29,6 +29,21 @@ export interface SupplementDetail {
   sideEffects?: string[]
 }
 
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean)
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
 function halfLifeDecayData(halfLifeHours: number): { hours: number; percent: number }[] {
   const points: { hours: number; percent: number }[] = []
   const maxHours = Math.min(halfLifeHours * 6, 720)
@@ -72,7 +87,16 @@ export function SupplementDetailDialog({
 
   if (!supplement) return null
 
-  const halfLifeH = supplement.halfLifeHours ?? supplement.halfLifeDays ? (supplement.halfLifeDays as number) * 24 : null
+  const halfLifeH = (() => {
+    const hours = Number(supplement.halfLifeHours)
+    if (Number.isFinite(hours) && hours > 0) return hours
+    const days = Number(supplement.halfLifeDays)
+    if (Number.isFinite(days) && days > 0) return days * 24
+    return null
+  })()
+  const useCases = toStringArray(supplement.useCases)
+  const positives = toStringArray(supplement.positives)
+  const sideEffects = toStringArray(supplement.sideEffects)
   const chartData = halfLifeH ? halfLifeDecayData(halfLifeH) : []
   const displayHalfLife = halfLifeH
     ? halfLifeH >= 24
@@ -94,7 +118,7 @@ export function SupplementDetailDialog({
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
-          {!supplement.form && !supplement.category && supplement.mgPerMl == null && !supplement.instructions && !supplement.notes && !(supplement.useCases?.length) && !(supplement.positives?.length) && !(supplement.sideEffects?.length) && supplement.halfLifeHours == null && supplement.halfLifeDays == null && (
+          {!supplement.form && !supplement.category && supplement.mgPerMl == null && !supplement.instructions && !supplement.notes && !useCases.length && !positives.length && !sideEffects.length && supplement.halfLifeHours == null && supplement.halfLifeDays == null && (
             <p className="text-muted-foreground">No additional details available.</p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -154,33 +178,33 @@ export function SupplementDetailDialog({
             </div>
           )}
 
-          {supplement.useCases && supplement.useCases.length > 0 && (
+          {useCases.length > 0 && (
             <div>
               <h4 className="font-semibold text-foreground mb-1">Use cases</h4>
               <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                {supplement.useCases.map((u, i) => (
+                {useCases.map((u, i) => (
                   <li key={i}>{u}</li>
                 ))}
               </ul>
             </div>
           )}
 
-          {supplement.positives && supplement.positives.length > 0 && (
+          {positives.length > 0 && (
             <div>
               <h4 className="font-semibold text-foreground mb-1">Benefits</h4>
               <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                {supplement.positives.map((p, i) => (
+                {positives.map((p, i) => (
                   <li key={i}>{p}</li>
                 ))}
               </ul>
             </div>
           )}
 
-          {supplement.sideEffects && supplement.sideEffects.length > 0 && (
+          {sideEffects.length > 0 && (
             <div>
               <h4 className="font-semibold text-foreground mb-1">Side effects</h4>
               <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                {supplement.sideEffects.map((s, i) => (
+                {sideEffects.map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
