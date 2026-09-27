@@ -260,6 +260,24 @@ export interface DashboardStats {
   [key: string]: unknown;
 }
 
+export type StaffRole = "ADMIN" | "EDITOR";
+
+export interface StaffUser {
+  id: string;
+  email: string;
+  displayName: string | null;
+  role: StaffRole;
+  createdAt?: string;
+  lastLoginAt?: string | null;
+}
+
+export interface StaffInput {
+  email?: string;
+  displayName?: string;
+  role?: StaffRole;
+  password?: string;
+}
+
 export interface AuthResponse {
   token: string;
   user?: {
