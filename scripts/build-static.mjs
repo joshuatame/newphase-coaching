@@ -1,13 +1,12 @@
 // Static export build script for NewPhase Coaching.
 // Produces an `out/` directory suitable for deployment under
-// https://<host>/clients/newphase-coaching
+// https://newphase-coaching.com
 import { spawn } from "node:child_process";
 
 const env = {
   ...process.env,
   NP_STATIC_EXPORT: "true",
-  NEXT_PUBLIC_BASE_PATH:
-    process.env.NEXT_PUBLIC_BASE_PATH || "/clients/newphase-coaching",
+  NEXT_PUBLIC_BASE_PATH: process.env.NEXT_PUBLIC_BASE_PATH || "",
   NEXT_PUBLIC_API_URL:
     process.env.NEXT_PUBLIC_API_URL || "https://api.tame-dynamics.com/api/v1",
 };

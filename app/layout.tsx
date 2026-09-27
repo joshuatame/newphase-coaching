@@ -20,7 +20,7 @@ const SITE_DESC =
   "Personalised online coaching that builds your next phase — bespoke training, nutrition and accountability engineered around your life.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://tame-dynamics.com"),
+  metadataBase: new URL("https://newphase-coaching.com"),
   title: {
     default: "NewPhase Coaching | Personalised Online Coaching",
     template: "%s | NewPhase Coaching",
