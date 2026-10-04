@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label'
 
 export function TrainerOnboardingPage() {
   const { user, refetch, needsTrainerOnboarding, isDualRole } = useAuth()
+  const [searchParams] = useSearchParams()
+  const redo = searchParams.get('redo') === '1'
   const myClientId = useMyClientId()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -43,7 +45,7 @@ export function TrainerOnboardingPage() {
 
   if (!user) return null
 
-  if (!needsTrainerOnboarding) {
+  if (!redo && !needsTrainerOnboarding) {
     return <Navigate to="/onboarding" replace />
   }
 

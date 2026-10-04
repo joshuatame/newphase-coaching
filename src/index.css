@@ -189,6 +189,12 @@ html.light [data-dialog-content] .text-muted-foreground,
   color: #737373 !important;
 }
 
+/* Dialogs (food, exercise, supplement) always in front */
+[data-dialog-content] {
+  z-index: 2147483647 !important;
+  position: fixed !important;
+}
+
 /* Form controls: ensure text is always readable across themes */
 input,
 textarea,

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyClientId } from '@/hooks/useMyClientId'
 import { db, storage } from '@/lib/firebase'
@@ -11,7 +12,7 @@ import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Key, Bell, EnvelopeSimple, UserCircle, Camera, CalendarBlank } from '@phosphor-icons/react'
+import { Key, Bell, EnvelopeSimple, UserCircle, Camera, CalendarBlank, ClipboardText } from '@phosphor-icons/react'
 import { buildCalendarIcs, downloadIcs } from '@/lib/calendar-export'
 import type { CalendarExportInput } from '@/lib/calendar-export'
 
@@ -26,6 +27,27 @@ export interface UserPreferences {
   weeklyRecapReminder: boolean
   scheduleReminders: boolean
   streakFreezeAllowance: number
+  /** When true, send daily check-in reminder at checkinReminderTime */
+  checkinReminder?: boolean
+  timezone?: string
+  /** HH:mm in user's local time */
+  habitReminderTime?: string
+  /** HH:mm in user's local time (first of day) */
+  waterReminderTime1?: string
+  /** HH:mm in user's local time (second of day) */
+  waterReminderTime2?: string
+  /** 0 = Sunday, 5 = Friday */
+  weeklyRecapDay?: number
+  /** HH:mm in user's local time */
+  weeklyRecapTime?: string
+  /** HH:mm in user's local time */
+  checkinReminderTime?: string
+  /** HH:mm - training reminder */
+  trainingReminderTime?: string
+  /** HH:mm - supplement morning/afternoon/night come from client doc; optional override */
+  supplementReminderMorning?: string
+  supplementReminderAfternoon?: string
+  supplementReminderNight?: string
 }
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -39,6 +61,7 @@ const DEFAULT_PREFS: UserPreferences = {
   weeklyRecapReminder: true,
   scheduleReminders: true,
   streakFreezeAllowance: 2,
+  checkinReminder: true,
 }
 
 export function SettingsPage() {
@@ -379,10 +402,21 @@ export function SettingsPage() {
 
       <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
         <h2 className="font-semibold flex items-center gap-2">Reminders</h2>
-        <p className="text-sm text-muted-foreground">Get reminded to log habits, water, and weekly recaps.</p>
+        <p className="text-sm text-muted-foreground">
+          Set when you want reminders (in your local time). Notifications will be sent at these times in your timezone.
+        </p>
+        <div>
+          <Label className="text-sm font-medium">Your timezone</Label>
+          <Input
+            value={prefs.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
+            onChange={(e) => savePrefsMutation.mutate({ timezone: e.target.value })}
+            placeholder="e.g. Europe/London"
+            className="mt-1 max-w-xs"
+          />
+        </div>
         <div className="space-y-4">
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm">Habit logging (daily 8pm)</span>
+          <label className="flex items-center justify-between cursor-pointer gap-4">
+            <span className="text-sm">Habit logging reminder</span>
             <input
               type="checkbox"
               checked={prefs.habitReminder}
@@ -390,8 +424,19 @@ export function SettingsPage() {
               className="rounded"
             />
           </label>
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm">Water logging (noon & 6pm)</span>
+          {prefs.habitReminder && (
+            <div className="flex items-center gap-2 pl-4">
+              <Label className="text-xs text-muted-foreground">Time (your local)</Label>
+              <Input
+                type="time"
+                value={prefs.habitReminderTime ?? '20:00'}
+                onChange={(e) => savePrefsMutation.mutate({ habitReminderTime: e.target.value })}
+                className="w-28"
+              />
+            </div>
+          )}
+          <label className="flex items-center justify-between cursor-pointer gap-4">
+            <span className="text-sm">Water logging reminder</span>
             <input
               type="checkbox"
               checked={prefs.waterReminder}
@@ -399,8 +444,30 @@ export function SettingsPage() {
               className="rounded"
             />
           </label>
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm">Weekly recap (Friday 6pm)</span>
+          {prefs.waterReminder && (
+            <div className="flex items-center gap-2 pl-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Time 1</Label>
+                <Input
+                  type="time"
+                  value={prefs.waterReminderTime1 ?? '12:00'}
+                  onChange={(e) => savePrefsMutation.mutate({ waterReminderTime1: e.target.value })}
+                  className="w-28"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Time 2</Label>
+                <Input
+                  type="time"
+                  value={prefs.waterReminderTime2 ?? '18:00'}
+                  onChange={(e) => savePrefsMutation.mutate({ waterReminderTime2: e.target.value })}
+                  className="w-28"
+                />
+              </div>
+            </div>
+          )}
+          <label className="flex items-center justify-between cursor-pointer gap-4">
+            <span className="text-sm">Weekly recap reminder</span>
             <input
               type="checkbox"
               checked={prefs.weeklyRecapReminder}
@@ -408,7 +475,52 @@ export function SettingsPage() {
               className="rounded"
             />
           </label>
-          <label className="flex items-center justify-between cursor-pointer">
+          {prefs.weeklyRecapReminder && (
+            <div className="flex items-center gap-2 pl-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Day</Label>
+                <select
+                  value={prefs.weeklyRecapDay ?? 5}
+                  onChange={(e) => savePrefsMutation.mutate({ weeklyRecapDay: parseInt(e.target.value, 10) })}
+                  className="rounded border border-border bg-background px-2 py-1.5 text-sm"
+                >
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                    <option key={d} value={i}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Time (your local)</Label>
+                <Input
+                  type="time"
+                  value={prefs.weeklyRecapTime ?? '18:00'}
+                  onChange={(e) => savePrefsMutation.mutate({ weeklyRecapTime: e.target.value })}
+                  className="w-28"
+                />
+              </div>
+            </div>
+          )}
+          <label className="flex items-center justify-between cursor-pointer gap-4">
+            <span className="text-sm">Check-in reminder (daily)</span>
+            <input
+              type="checkbox"
+              checked={prefs.checkinReminder !== false}
+              onChange={(e) => savePrefsMutation.mutate({ checkinReminder: e.target.checked })}
+              className="rounded"
+            />
+          </label>
+          {prefs.checkinReminder !== false && (
+            <div className="flex items-center gap-2 pl-4">
+              <Label className="text-xs text-muted-foreground">Time (your local)</Label>
+              <Input
+                type="time"
+                value={prefs.checkinReminderTime ?? '09:00'}
+                onChange={(e) => savePrefsMutation.mutate({ checkinReminderTime: e.target.value })}
+                className="w-28"
+              />
+            </div>
+          )}
+          <label className="flex items-center justify-between cursor-pointer gap-4">
             <span className="text-sm">Calendar schedule reminders</span>
             <input
               type="checkbox"
@@ -417,6 +529,28 @@ export function SettingsPage() {
               className="rounded"
             />
           </label>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+        <h2 className="font-semibold flex items-center gap-2">
+          <ClipboardText className="h-5 w-5 text-primary" weight="duotone" />
+          Re-do onboarding
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Update your client profile (goals, habits, meal times, etc.) or trainer profile.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {myClientId && (
+            <Link to="/onboarding/client?redo=1">
+              <Button variant="outline">Re-do client profile</Button>
+            </Link>
+          )}
+          {(profile?.role === 'trainer' || profile?.role === 'admin') && (
+            <Link to="/onboarding/trainer?redo=1">
+              <Button variant="outline">Re-do trainer profile</Button>
+            </Link>
+          )}
         </div>
       </div>
 

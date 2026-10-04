@@ -462,7 +462,127 @@ async function sendPushToUser(userId: string, title: string, body: string, data?
   }
 }
 
-/** Habit logging reminder - daily 8pm UTC */
+/** Return current time in a timezone as HH:mm (24h). */
+function getLocalTimeString(tz: string): string {
+  try {
+    return new Date().toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false })
+  } catch {
+    return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+  }
+}
+
+/** Return current weekday in timezone (0 = Sun, 5 = Fri). */
+function getLocalDay(tz: string): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' })
+    const day = formatter.format(new Date())
+    const days: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+    return days[day] ?? 0
+  } catch {
+    return new Date().getDay()
+  }
+}
+
+/** Hourly job: send reminders at each user's preferred local time (timezone-aware). */
+export const reminderHourlyByUserTz = functions.pubsub
+  .schedule('0 * * * *')
+  .timeZone('UTC')
+  .onRun(async () => {
+    const clientsSnap = await db.collection('clients').get()
+    const today = new Date().toISOString().slice(0, 10)
+    for (const clientDoc of clientsSnap.docs) {
+      const clientId = clientDoc.id
+      const clientData = clientDoc.data()
+      const uid = clientData?.uid ?? clientId
+      const prefsSnap = await db.collection('userPreferences').doc(uid).get()
+      const prefs = prefsSnap.data() ?? {}
+      const tz = prefs.timezone ?? clientData?.timezone ?? 'UTC'
+      const localTime = getLocalTimeString(tz)
+      const localHour = localTime.slice(0, 2)
+      const localDay = getLocalDay(tz)
+      if (prefs.habitReminder !== false) {
+        const habitTime = prefs.habitReminderTime ?? '20:00'
+        if (localHour === habitTime.slice(0, 2)) {
+          const entrySnap = await db.collection('productivityEntries')
+            .where('clientId', '==', clientId)
+            .where('date', '==', today)
+            .limit(1)
+            .get()
+          if (entrySnap.empty) {
+            await db.collection('notifications').add({
+              userId: uid,
+              title: 'Time to log your habits',
+              body: "Don't forget to log your daily habits and productivity!",
+              type: 'habit_reminder',
+              data: { screen: '/productivity' },
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              read: false,
+            })
+            await sendPushToUser(uid, 'Time to log your habits', "Don't forget to log your daily habits!").catch(() => {})
+          }
+        }
+      }
+      if (prefs.waterReminder !== false) {
+        const t1 = (prefs.waterReminderTime1 ?? '12:00').slice(0, 2)
+        const t2 = (prefs.waterReminderTime2 ?? '18:00').slice(0, 2)
+        if (localHour === t1 || localHour === t2) {
+          await db.collection('notifications').add({
+            userId: uid,
+            title: 'Stay hydrated!',
+            body: 'Remember to log your water intake.',
+            type: 'water_reminder',
+            data: { screen: '/water' },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+          })
+          await sendPushToUser(uid, 'Stay hydrated!', 'Remember to log your water intake.').catch(() => {})
+        }
+      }
+      if (prefs.weeklyRecapReminder !== false) {
+        const recapDay = prefs.weeklyRecapDay ?? 5
+        const recapTime = (prefs.weeklyRecapTime ?? '18:00').slice(0, 2)
+        if (localDay === recapDay && localHour === recapTime) {
+          await db.collection('notifications').add({
+            userId: uid,
+            title: 'Weekly recap',
+            body: 'Time to submit your weekly recap for your trainer.',
+            type: 'weekly_recap',
+            data: { screen: '/clients/' + clientId },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+          })
+          await sendPushToUser(uid, 'Weekly recap', 'Time to submit your weekly recap for your trainer.').catch(() => {})
+        }
+      }
+      if (prefs.checkinReminder !== false && POSTMARK_TOKEN) {
+        const checkinTime = (prefs.checkinReminderTime ?? '09:00').slice(0, 2)
+        if (localHour === checkinTime) {
+          const checkinSnap = await db.collection('checkins')
+            .where('clientId', '==', clientId)
+            .where('date', '==', today)
+            .limit(1)
+            .get()
+          if (checkinSnap.empty) {
+            const html = `<h2>Your Check-in Is Due</h2><p>This is a reminder that your daily check-in has not been submitted yet.</p><p>Log in to the app to complete your check-in.</p><p>— Newphase Coaching</p>`
+            await sendIfEmailEnabled(uid, 'Your Check-in Is Due', html).catch((e) => console.warn('Check-in reminder failed:', e))
+            await db.collection('notifications').add({
+              userId: uid,
+              title: 'Check-in reminder',
+              body: "Don't forget to complete your daily check-in.",
+              type: 'checkin_reminder',
+              data: { screen: '/checkins' },
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              read: false,
+            })
+            await sendPushToUser(uid, 'Check-in reminder', "Don't forget to complete your daily check-in.").catch(() => {})
+          }
+        }
+      }
+    }
+    return null
+  })
+
+/** Habit logging reminder - daily 8pm UTC (fallback when no user prefs). */
 export const habitReminderScheduled = functions.pubsub
   .schedule('0 20 * * *')
   .timeZone('UTC')

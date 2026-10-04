@@ -10,10 +10,14 @@ import { Button } from '@/components/ui/button'
 import { CheckInForm } from '@/components/CheckInForm'
 import { PageLoader } from '@/components/PageLoader'
 
+type TemplateItem = { id: string; name: string; questions?: unknown[]; frequency?: string }
+
 export function CheckInsPage() {
-  const [fillingTemplate, setFillingTemplate] = useState<{ id: string; name: string; questions?: unknown[]; frequency?: string } | null>(null)
-  const { profile } = useAuth()
+  const [fillingTemplate, setFillingTemplate] = useState<TemplateItem | null>(null)
+  const { profile, hasClientDoc } = useAuth()
   const isTrainer = profile?.role === 'trainer' || profile?.role === 'admin'
+  const canSubmitAsClient = profile?.role === 'client' || (isTrainer && hasClientDoc)
+  const clientIdForCheckin = profile?.uid ?? ''
 
   const { data: clientsMap = {}, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients-display-names'],
@@ -43,12 +47,12 @@ export function CheckInsPage() {
     queryFn: async () => {
       const q = query(
         collection(db, 'checkins'),
-        where('clientId', '==', profile?.uid ?? '')
+        where('clientId', '==', clientIdForCheckin)
       )
       const snap = await getDocs(q)
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
     },
-    enabled: !!profile && profile?.role === 'client',
+    enabled: !!profile && !!clientIdForCheckin && canSubmitAsClient,
   })
 
   const { data: allCheckins = [], isLoading: allCheckinsLoading } = useQuery({
@@ -63,8 +67,11 @@ export function CheckInsPage() {
   const pendingReview = allCheckins.filter((c) => (c as { status?: string }).status === 'pending_review')
 
   const loading = !profile || templatesLoading ||
-    (isTrainer ? (clientsLoading || allCheckinsLoading) : myCheckinsLoading)
+    (isTrainer ? (clientsLoading || allCheckinsLoading) : (canSubmitAsClient ? myCheckinsLoading : false))
   if (loading) return <PageLoader />
+
+  const dailyTemplates = (templates as TemplateItem[]).filter((t) => (t.frequency ?? 'daily') === 'daily')
+  const weeklyTemplates = (templates as TemplateItem[]).filter((t) => t.frequency === 'weekly')
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -95,7 +102,7 @@ export function CheckInsPage() {
         </div>
       )}
 
-      {profile?.role === 'client' && (
+      {canSubmitAsClient && (
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -107,16 +114,31 @@ export function CheckInsPage() {
               </p>
             </div>
             {templates.length > 0 && (
-              <Button onClick={() => setFillingTemplate(templates[0] as { id: string; name: string; questions?: unknown[]; frequency?: string })}>
-                <Plus className="h-4 w-4 mr-2" weight="bold" />
-                Submit check-in
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {dailyTemplates.length > 0 && (
+                  <Button
+                    onClick={() => setFillingTemplate(dailyTemplates[0]!)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" weight="bold" />
+                    Daily check-in
+                  </Button>
+                )}
+                {weeklyTemplates.length > 0 && (
+                  <Button
+                    variant={dailyTemplates.length > 0 ? 'outline' : 'default'}
+                    onClick={() => setFillingTemplate(weeklyTemplates[0]!)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" weight="bold" />
+                    Weekly check-in
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {profile?.role === 'client' && (
+      {canSubmitAsClient && (
         <div className="rounded-2xl border border-border bg-card p-5">
           <h2 className="font-semibold mb-3">My check-ins</h2>
           {myCheckins.length === 0 ? (
@@ -164,17 +186,20 @@ export function CheckInsPage() {
         </div>
       )}
 
-      {fillingTemplate && profile?.role === 'client' && (
+      {fillingTemplate && canSubmitAsClient && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setFillingTemplate(null)}
         >
           <div
-            className="bg-card border border-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto text-foreground shadow-xl"
+            className="bg-card border border-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto text-foreground shadow-xl z-[10001] relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-border">
               <h3 className="font-semibold">Submit check-in: {fillingTemplate.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {(fillingTemplate.frequency ?? 'daily') === 'weekly' ? 'Weekly' : 'Daily'} check-in
+              </p>
             </div>
             <div className="p-4">
               <CheckInForm
@@ -184,7 +209,7 @@ export function CheckInsPage() {
                   questions: (fillingTemplate.questions ?? []) as { id: string; question: string; type: string; options?: string[] }[],
                   frequency: fillingTemplate.frequency,
                 }}
-                clientId={profile.uid}
+                clientId={clientIdForCheckin}
                 defaultDate={format(new Date(), 'yyyy-MM-dd')}
                 onSuccess={() => setFillingTemplate(null)}
                 onCancel={() => setFillingTemplate(null)}

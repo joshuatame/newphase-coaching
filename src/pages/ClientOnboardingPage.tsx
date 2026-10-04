@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { doc, setDoc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/lib/firebase'
@@ -30,15 +30,6 @@ const INITIAL_HABITS = [
   'Sleep by 11pm',
 ]
 
-const MEAL_TIMES = [
-  { value: 'morning', label: 'Early morning (5–8am)' },
-  { value: 'mid-morning', label: 'Mid-morning (9–11am)' },
-  { value: 'lunch', label: 'Lunch (12–2pm)' },
-  { value: 'afternoon', label: 'Afternoon (2–5pm)' },
-  { value: 'dinner', label: 'Dinner (5–8pm)' },
-  { value: 'evening', label: 'Evening (8pm+)' },
-]
-
 const TRAINING_TIMES = [
   { value: 'morning', label: 'Morning (6–9am)' },
   { value: 'midday', label: 'Midday (11am–1pm)' },
@@ -48,6 +39,8 @@ const TRAINING_TIMES = [
 
 export function ClientOnboardingPage() {
   const { user, profile, refetch, needsClientOnboarding, isDualRole } = useAuth()
+  const [searchParams] = useSearchParams()
+  const redo = searchParams.get('redo') === '1'
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
@@ -63,7 +56,12 @@ export function ClientOnboardingPage() {
     customGoals: [] as string[],
     foodsToAvoid: '',
     preferredMealTimes: [] as string[],
-    customMealSlots: [] as { label: string; time: string }[],
+    customMealSlots: [
+      { label: 'Meal 1', time: '08:00' },
+      { label: 'Meal 2', time: '12:30' },
+      { label: 'Meal 3', time: '19:00' },
+    ] as { label: string; time: string }[],
+    numberOfMeals: 3,
     preferredTrainingTime: '' as string,
     preferredTrainingTimeCustom: '' as string,
     supplementTimeMorning: '07:00',
@@ -94,15 +92,6 @@ export function ClientOnboardingPage() {
     }))
   }
 
-  const handleMealTimeToggle = (value: string) => {
-    setForm((f) => ({
-      ...f,
-      preferredMealTimes: f.preferredMealTimes.includes(value)
-        ? f.preferredMealTimes.filter((t) => t !== value)
-        : [...f.preferredMealTimes, value],
-    }))
-  }
-
   const addCustomHabit = () => {
     const name = (document.getElementById('customHabit') as HTMLInputElement)?.value?.trim()
     if (!name || form.customHabits.includes(name)) return
@@ -125,23 +114,25 @@ export function ClientOnboardingPage() {
     setForm((f) => ({ ...f, customGoals: f.customGoals.filter((g) => g !== name) }))
   }
 
-  const addCustomMealSlot = () => {
-    const label = (document.getElementById('customMealLabel') as HTMLInputElement)?.value?.trim()
-    const time = (document.getElementById('customMealTime') as HTMLInputElement)?.value?.trim()
-    if (!label || !time) return
-    setForm((f) => ({
-      ...f,
-      customMealSlots: [...f.customMealSlots, { label, time: time.slice(0, 5) }],
-    }))
-    ;(document.getElementById('customMealLabel') as HTMLInputElement).value = ''
-    ;(document.getElementById('customMealTime') as HTMLInputElement).value = ''
+  const setNumberOfMeals = (n: number) => {
+    const num = Math.min(6, Math.max(2, n))
+    setForm((f) => {
+      const current = f.customMealSlots
+      const next: { label: string; time: string }[] = []
+      for (let i = 0; i < num; i++) {
+        next.push(current[i] ?? { label: `Meal ${i + 1}`, time: i === 0 ? '08:00' : i === 1 ? '12:30' : '19:00' })
+      }
+      return { ...f, numberOfMeals: num, customMealSlots: next }
+    })
   }
 
-  const removeCustomMealSlot = (index: number) => {
-    setForm((f) => ({
-      ...f,
-      customMealSlots: f.customMealSlots.filter((_, i) => i !== index),
-    }))
+  const updateMealSlot = (index: number, field: 'label' | 'time', value: string) => {
+    setForm((f) => {
+      const slots = [...f.customMealSlots]
+      while (slots.length <= index) slots.push({ label: `Meal ${slots.length + 1}`, time: '12:00' })
+      slots[index] = { ...slots[index]!, [field]: value }
+      return { ...f, customMealSlots: slots }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,8 +158,8 @@ export function ClientOnboardingPage() {
         imageUrl: imageUrl || null,
         goals: [...form.goals, ...form.customGoals],
         foodsToAvoid: form.foodsToAvoid || null,
-        preferredMealTimes: form.preferredMealTimes,
-        customMealSlots: form.customMealSlots,
+        preferredMealTimes: form.customMealSlots.slice(0, form.numberOfMeals).map((s) => s.label),
+        customMealSlots: form.customMealSlots.slice(0, form.numberOfMeals),
         preferredTrainingTime: form.preferredTrainingTime || form.preferredTrainingTimeCustom || null,
         supplementTimes: {
           morning: form.supplementTimeMorning || null,
@@ -203,7 +194,7 @@ export function ClientOnboardingPage() {
 
   if (!user) return null
 
-  if ((profile?.role === 'trainer' || profile?.role === 'admin') && !needsClientOnboarding) {
+  if (!redo && (profile?.role === 'trainer' || profile?.role === 'admin') && !needsClientOnboarding) {
     return <Navigate to="/onboarding" replace />
   }
   return (
@@ -325,13 +316,16 @@ export function ClientOnboardingPage() {
           <div className="space-y-4">
             <h2 className="font-semibold text-lg">Habits to track</h2>
             <p className="text-sm text-muted-foreground">
-              Select habits you want to focus on, or add your own.
+              Select <strong>only</strong> the habits you want to track. Only selected habits will appear in your habit log.
             </p>
+            <p className="text-xs text-muted-foreground">Selected: {form.initialHabits.length + form.customHabits.length} habit(s)</p>
             <div className="flex flex-wrap gap-2">
               {INITIAL_HABITS.map((h) => (
                 <button
                   key={h}
                   type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleHabitToggle(h)}
                   className={`px-4 py-2 rounded-md border text-sm transition-colors ${
                     form.initialHabits.includes(h)
@@ -379,12 +373,15 @@ export function ClientOnboardingPage() {
 
           <div className="space-y-4">
             <h2 className="font-semibold text-lg">Goals</h2>
-            <p className="text-sm text-muted-foreground">What do you want to achieve? Select and/or add your own.</p>
+            <p className="text-sm text-muted-foreground">Select <strong>only</strong> the goals you want. Only selected goals will be saved.</p>
+            <p className="text-xs text-muted-foreground">Selected: {form.goals.length + form.customGoals.length} goal(s)</p>
             <div className="flex flex-wrap gap-2">
               {GOALS.map((g) => (
                 <button
                   key={g.value}
                   type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleGoalToggle(g.value)}
                   className={`px-4 py-2 rounded-md border text-sm transition-colors ${
                     form.goals.includes(g.value)
@@ -443,54 +440,53 @@ export function ClientOnboardingPage() {
 
           <div className="space-y-4">
             <h2 className="font-semibold text-lg">Preferred meal times</h2>
-            <p className="text-sm text-muted-foreground">When you usually eat. Select presets and/or add custom times (used for calendar reminders).</p>
-            <div className="flex flex-wrap gap-2">
-              {MEAL_TIMES.map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => handleMealTimeToggle(m.value)}
-                  className={`px-4 py-2 rounded-md border text-sm transition-colors ${
-                    form.preferredMealTimes.includes(m.value)
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background border-border hover:border-primary/50'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2 items-center">
-              <Input id="customMealLabel" placeholder="e.g. Breakfast" className="max-w-[140px]" />
-              <Input id="customMealTime" type="time" className="max-w-[120px]" />
-              <Button type="button" variant="outline" size="sm" onClick={addCustomMealSlot}>
-                <Plus className="h-4 w-4 mr-1" weight="bold" />
-                Add time
-              </Button>
-            </div>
-            {form.customMealSlots.length > 0 && (
-              <ul className="space-y-1">
-                {form.customMealSlots.map((slot, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">{slot.label}</span>
-                    <span className="text-muted-foreground">{slot.time}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeCustomMealSlot(i)}
-                      className="p-0.5 rounded hover:bg-destructive/20 text-destructive"
-                      aria-label="Remove"
-                    >
-                      <X className="h-3.5 w-3.5" weight="bold" />
-                    </button>
-                  </li>
+            <p className="text-sm text-muted-foreground">Set how many meals per day and name each meal with a time (for reminders and calendar). All times are in your local timezone.</p>
+            <div>
+              <Label className="text-sm font-medium">Number of meals per day</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {[2, 3, 4, 5, 6].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setNumberOfMeals(n)}
+                    className={`px-4 py-2 rounded-md border text-sm transition-colors ${
+                      form.numberOfMeals === n
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background border-border hover:border-primary/50'
+                    }`}
+                  >
+                    {n}
+                  </button>
                 ))}
-              </ul>
-            )}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Name and time for each meal</Label>
+              {Array.from({ length: form.numberOfMeals }, (_, i) => {
+                const slot = form.customMealSlots[i] ?? { label: `Meal ${i + 1}`, time: '12:00' }
+                return (
+                  <div key={i} className="flex flex-wrap items-center gap-2 p-3 rounded-xl border border-border bg-muted/30">
+                    <Input
+                      placeholder="e.g. Breakfast"
+                      value={slot.label}
+                      onChange={(e) => updateMealSlot(i, 'label', e.target.value)}
+                      className="max-w-[160px]"
+                    />
+                    <Input
+                      type="time"
+                      value={slot.time}
+                      onChange={(e) => updateMealSlot(i, 'time', e.target.value.slice(0, 5))}
+                      className="max-w-[100px]"
+                    />
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           <div className="space-y-4">
             <h2 className="font-semibold text-lg">Preferred training time</h2>
-            <p className="text-sm text-muted-foreground">When you usually work out (for calendar sync).</p>
+            <p className="text-sm text-muted-foreground">When you usually work out (for reminders and calendar). Time is in your local timezone.</p>
             <div className="flex flex-wrap gap-2">
               {TRAINING_TIMES.map((t) => (
                 <button
@@ -521,7 +517,7 @@ export function ClientOnboardingPage() {
 
           <div className="space-y-4">
             <h2 className="font-semibold text-lg">Supplement times</h2>
-            <p className="text-sm text-muted-foreground">When you take morning / afternoon / evening supplements (for calendar reminders).</p>
+            <p className="text-sm text-muted-foreground">When you take morning / afternoon / evening supplements (for reminders and calendar). Times are in your local timezone.</p>
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <Label htmlFor="suppMorning">Morning</Label>
@@ -586,6 +582,20 @@ export function ClientOnboardingPage() {
               placeholder="Vegetarian, vegan, keto, allergies, etc."
               rows={2}
             />
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="font-semibold text-lg">Timezone</h2>
+            <p className="text-sm text-muted-foreground">Used for all reminder and notification times. We detected: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+            <div>
+              <Label htmlFor="timezone">Your timezone</Label>
+              <Input
+                id="timezone"
+                value={form.timezone}
+                onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}
+                placeholder="e.g. Europe/London, America/New_York"
+              />
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

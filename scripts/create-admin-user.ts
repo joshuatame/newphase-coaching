@@ -61,6 +61,15 @@ async function main() {
     }, { merge: true })
     console.log('Updated users/' + user.uid + ' with role: admin')
 
+    await db.collection('clients').doc(user.uid).set({
+      uid: user.uid,
+      email: ADMIN_EMAIL,
+      displayName: user.displayName || ADMIN_EMAIL.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      onboardingComplete: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true })
+    console.log('Updated clients/' + user.uid + ' (trainer+client blended)')
+
     await db.collection('allowedEmails').doc(ADMIN_EMAIL.replace(/\./g, '_')).set({
       email: ADMIN_EMAIL,
       addedAt: FieldValue.serverTimestamp(),
