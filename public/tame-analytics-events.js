@@ -17,6 +17,17 @@
       window.umami.track(name);
     }
   }
+  function enquiryForm(target) {
+    if (window.tameAnalyticsAllowed?.() !== true || !target?.closest) return null;
+    var form = target.closest('form');
+    if (!form) return null;
+    if (form.matches('form[data-tame-enquiry-form]')) return form;
+    // Existing public contact forms need no application bundle changes. Only
+    // inspect element types; never read field values or infer completed leads.
+    if (!/(?:^|\/)(?:contact|contact-us)\/?$/.test(location.pathname) ||
+        form.querySelector('input[type="password"],input[autocomplete^="cc-"]')) return null;
+    return form.querySelector('input[type="email"]') && form.querySelector('textarea') ? form : null;
+  }
   document.addEventListener("click", function (event) {
     var element = event.target;
     if (!element || !element.closest) return;
@@ -32,14 +43,14 @@
   document.addEventListener("focusin", function (event) {
     var target = event.target;
     if (!target || !target.closest) return;
-    var form = target.closest("form[data-tame-enquiry-form]");
+    var form = enquiryForm(target);
     if (!form || form.dataset.tameAnalyticsStarted === "1") return;
     form.dataset.tameAnalyticsStarted = "1";
     track("enquiry_start");
   }, true);
   document.addEventListener("submit", function (event) {
-    var form = event.target;
-    if (form && form.matches && form.matches("form[data-tame-enquiry-form]")) {
+    var form = enquiryForm(event.target);
+    if (form) {
       track("enquiry_attempt");
     }
   }, true);

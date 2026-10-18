@@ -17,6 +17,9 @@ const dmSans = DM_Sans({
 });
 
 const SITE_NAME = "NewPhase Coaching";
+const analyticsBasePath = (process.env.NEXT_PUBLIC_BASE_PATH || "").replace(/\/$/, "");
+const analyticsPaths = ["/", "/trainers", "/packages", "/testimonials"]
+  .map((path) => analyticsBasePath + (path === "/" ? (analyticsBasePath ? "" : "/") : path)).join(",");
 const SITE_DESC =
   "Personalised online coaching that builds your next phase — bespoke training, nutrition and accountability engineered around your life.";
 
@@ -75,9 +78,9 @@ export default function RootLayout({
         </a>
         {children}
       {/* tame-website-intelligence:start */}
-<link rel="stylesheet" href="/visitor-privacy.css?v=1c3f4aa528cf" />
-<WebsiteAnalyticsScript src="/visitor-privacy.js?v=1c3f4aa528cf" data-website-id="cd790d4e-ef78-46b8-b5d5-126598be31a0" data-domains="newphase-coaching.com,www.newphase-coaching.com" data-paths="/,/trainers,/packages,/testimonials" data-preferences-paths="/privacy-analytics.html" data-privacy-url="/privacy-analytics.html" data-basic-count="true" data-default-analytics="australia" data-track-navigation="true" data-preference-scope="site" strategy="afterInteractive" />
-<WebsiteAnalyticsScript src="/tame-analytics-events.js?v=1c3f4aa528cf" strategy="afterInteractive" />
+<link rel="stylesheet" href={`${analyticsBasePath}/visitor-privacy.css?v=32c576282361`} />
+<WebsiteAnalyticsScript src={`${analyticsBasePath}/visitor-privacy.js?v=32c576282361`} data-website-id="cd790d4e-ef78-46b8-b5d5-126598be31a0" data-domains="newphase-coaching.com,www.newphase-coaching.com" data-paths={analyticsPaths} data-preferences-paths={`${analyticsBasePath}/privacy-analytics.html`} data-privacy-url={`${analyticsBasePath}/privacy-analytics.html`} data-basic-count="true" data-default-analytics="australia" data-track-navigation="true" data-preference-scope="site" strategy="afterInteractive" />
+<WebsiteAnalyticsScript src={`${analyticsBasePath}/tame-analytics-events.js?v=32c576282361`} strategy="afterInteractive" />
 {/* tame-website-intelligence:end */}
 </body>
     </html>
