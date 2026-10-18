@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_PATH || "").replace(/\/$/, "");
-const SITE = "https://tame-dynamics.com";
+const SITE = "https://newphase-coaching.com";
 
 export const dynamic = "force-static";
 

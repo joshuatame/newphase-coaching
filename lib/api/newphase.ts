@@ -31,6 +31,8 @@ import type {
   Section,
   SiteSettingRow,
   SiteSettings,
+  StaffInput,
+  StaffUser,
   Testimonial,
 } from "@/types/newphase";
 
@@ -449,6 +451,39 @@ export async function adminUpdateClient(
 }
 export async function adminDeleteClient(id: string): Promise<void> {
   await apiFetch<unknown>(`${NP}/admin/clients/${id}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+/* --- Admin: Users (staff access) --- */
+export async function adminGetStaff(): Promise<StaffUser[]> {
+  const res = await apiFetch<unknown>(`${NP}/admin/staff`, { auth: true });
+  return unwrapList<StaffUser>(res);
+}
+export async function adminCreateStaff(
+  data: StaffInput,
+): Promise<StaffUser | null> {
+  const res = await apiFetch<unknown>(`${NP}/admin/staff`, {
+    method: "POST",
+    body: data,
+    auth: true,
+  });
+  return unwrapItem<StaffUser>(res);
+}
+export async function adminUpdateStaff(
+  id: string,
+  data: StaffInput,
+): Promise<StaffUser | null> {
+  const res = await apiFetch<unknown>(`${NP}/admin/staff/${id}`, {
+    method: "PATCH",
+    body: data,
+    auth: true,
+  });
+  return unwrapItem<StaffUser>(res);
+}
+export async function adminRemoveStaff(id: string): Promise<void> {
+  await apiFetch<unknown>(`${NP}/admin/staff/${id}`, {
     method: "DELETE",
     auth: true,
   });

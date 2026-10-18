@@ -41,11 +41,11 @@ NEXT_PUBLIC_API_URL=https://api.tame-dynamics.com/api/v1
 
 ```
 NP_STATIC_EXPORT=true
-NEXT_PUBLIC_BASE_PATH=/clients/newphase-coaching
+NEXT_PUBLIC_BASE_PATH=
 NEXT_PUBLIC_API_URL=https://api.tame-dynamics.com/api/v1
 ```
 
-Output lands in `./out`, ready to deploy under `https://<host>/clients/newphase-coaching`. `basePath`, `assetPrefix`, `trailingSlash` and `images.unoptimized` are configured in `next.config.ts`.
+Output lands in `./out`, ready to deploy at the root of `https://newphase-coaching.com`. `basePath`, `assetPrefix`, `trailingSlash` and `images.unoptimized` are configured in `next.config.ts`.
 
 ## Data / API
 
