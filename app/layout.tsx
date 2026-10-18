@@ -1,3 +1,4 @@
+import WebsiteAnalyticsScript from "next/script";
 import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -73,7 +74,12 @@ export default function RootLayout({
           Skip to content
         </a>
         {children}
-      </body>
+      {/* tame-website-intelligence:start */}
+<link rel="stylesheet" href="/visitor-privacy.css?v=1c3f4aa528cf" />
+<WebsiteAnalyticsScript src="/visitor-privacy.js?v=1c3f4aa528cf" data-website-id="cd790d4e-ef78-46b8-b5d5-126598be31a0" data-domains="newphase-coaching.com,www.newphase-coaching.com" data-paths="/,/trainers,/packages,/testimonials" data-preferences-paths="/privacy-analytics.html" data-privacy-url="/privacy-analytics.html" data-basic-count="true" data-default-analytics="australia" data-track-navigation="true" data-preference-scope="site" strategy="afterInteractive" />
+<WebsiteAnalyticsScript src="/tame-analytics-events.js?v=1c3f4aa528cf" strategy="afterInteractive" />
+{/* tame-website-intelligence:end */}
+</body>
     </html>
   );
 }

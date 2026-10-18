@@ -1,0 +1,16 @@
+{
+  "websiteId": "cd790d4e-ef78-46b8-b5d5-126598be31a0",
+  "domains": [
+    "newphase-coaching.com",
+    "www.newphase-coaching.com"
+  ],
+  "paths": [
+    "/",
+    "/trainers",
+    "/packages",
+    "/testimonials"
+  ],
+  "privacyMode": "australia",
+  "basicCount": true,
+  "basePath": ""
+}
