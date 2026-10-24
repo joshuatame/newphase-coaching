@@ -87,17 +87,16 @@
     const panel = element('section', '', document.body);
     panel.className = 'tame-privacy';
     panel.setAttribute('aria-label', 'Website privacy choices');
-    const heading = element('h2', 'Analytics preferences', panel);
+    let dismissed = false;
+    const heading = element('h2', 'Website analytics', panel);
     heading.id = 'tame-privacy-heading';
-    element('p', config.basicCount === 'true'
-      ? 'Basic page-load totals continue after No, without visitor IDs, IP addresses or browsing history.'
-      : 'Optional analytics helps improve this website.', panel);
-    element('p', config.defaultAnalytics === 'australia'
-      ? 'Optional visit and enquiry-action analytics starts in Australia. No switches it off. Elsewhere, Allow starts it. Enquiry details are never collected.'
-      : 'Allow optional visit and enquiry-action analytics. Enquiry details are never collected. Change your choice any time.', panel);
-    const policy = element('a', 'Privacy notice', panel);
+    const close = element('button', '\u00d7', panel);
+    close.className = 'tame-privacy-close';
+    close.setAttribute('aria-label', 'Close analytics notice');
+    const policy = element('a', 'Privacy policy', panel);
     policy.href = config.privacyUrl?.startsWith('/') && !config.privacyUrl.startsWith('//') ? config.privacyUrl : '/privacy';
     const status = element('p', '', panel);
+    status.className = 'tame-privacy-status';
     status.setAttribute('role', 'status');
     const buttons = element('div', '', panel);
     buttons.className = 'tame-privacy-actions';
@@ -107,7 +106,7 @@
     yes.setAttribute('aria-label', 'Allow optional analytics');
     const preferences = element('button', 'Privacy choices', document.body);
     preferences.className = 'tame-privacy-toggle';
-    for (const button of [no, yes, preferences]) button.type = 'button';
+    for (const button of [no, yes, close, preferences]) button.type = 'button';
     function render() {
       status.textContent = privacySignal() ? 'Your browser privacy setting keeps optional analytics off.'
         : enabled() ? 'Optional analytics is currently on.' : 'Optional analytics is currently off.';
@@ -124,6 +123,7 @@
     }
     no.addEventListener('click', () => save(false));
     yes.addEventListener('click', () => { if (!privacySignal()) save(true); });
+    close.addEventListener('click', () => { dismissed = true; panel.hidden = true; preferences.focus(); });
     preferences.addEventListener('click', () => { render(); panel.hidden = !panel.hidden; if (!panel.hidden) no.focus(); });
     window.addEventListener('storage', event => {
       if (event.key === key || event.key === legacyKey || event.key === null) { readChoice(); render(); startOptional(); }
@@ -136,7 +136,7 @@
       pageSent = false;
       const publicPage = eligible();
       preferences.hidden = !publicPage && !preferencesPath();
-      panel.hidden = preferences.hidden || choice !== null || privacySignal();
+      panel.hidden = dismissed || preferences.hidden || choice !== null || privacySignal();
       render();
       // Exact public routes only. No query strings, cookies, identity or retries.
       if (publicPage && config.basicCount === 'true') {
