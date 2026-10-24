@@ -87,7 +87,7 @@
     const panel = element('section', '', document.body);
     panel.className = 'tame-privacy';
     panel.setAttribute('aria-label', 'Website privacy choices');
-    let dismissed = false;
+    let dismissed = true;
     const heading = element('h2', 'Website analytics', panel);
     heading.id = 'tame-privacy-heading';
     const close = element('button', '\u00d7', panel);
