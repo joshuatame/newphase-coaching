@@ -78,8 +78,8 @@ export default function RootLayout({
         </a>
         {children}
       {/* tame-website-intelligence:start */}
-<link rel="stylesheet" href={`${analyticsBasePath}/visitor-privacy.css?v=32c576282361`} />
-<WebsiteAnalyticsScript src={`${analyticsBasePath}/visitor-privacy.js?v=32c576282361`} data-website-id="cd790d4e-ef78-46b8-b5d5-126598be31a0" data-domains="newphase-coaching.com,www.newphase-coaching.com" data-paths={analyticsPaths} data-preferences-paths={`${analyticsBasePath}/privacy-analytics.html`} data-privacy-url={`${analyticsBasePath}/privacy-analytics.html`} data-basic-count="true" data-default-analytics="australia" data-track-navigation="true" data-preference-scope="site" strategy="afterInteractive" />
+<link rel="stylesheet" href={`${analyticsBasePath}/visitor-privacy.css?v=0434f0b69e10`} />
+<WebsiteAnalyticsScript src={`${analyticsBasePath}/visitor-privacy.js?v=0434f0b69e10`} data-website-id="cd790d4e-ef78-46b8-b5d5-126598be31a0" data-domains="newphase-coaching.com,www.newphase-coaching.com" data-paths={analyticsPaths} data-preferences-paths={`${analyticsBasePath}/privacy-analytics.html`} data-privacy-url={`${analyticsBasePath}/privacy-analytics.html`} data-basic-count="true" data-default-analytics="australia" data-track-navigation="true" data-preference-scope="site" strategy="afterInteractive" />
 <WebsiteAnalyticsScript src={`${analyticsBasePath}/tame-analytics-events.js?v=32c576282361`} strategy="afterInteractive" />
 {/* tame-website-intelligence:end */}
 </body>
