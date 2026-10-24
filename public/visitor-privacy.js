@@ -87,22 +87,24 @@
     const panel = element('section', '', document.body);
     panel.className = 'tame-privacy';
     panel.setAttribute('aria-label', 'Website privacy choices');
-    const heading = element('h2', 'Your privacy choices', panel);
+    const heading = element('h2', 'Analytics preferences', panel);
     heading.id = 'tame-privacy-heading';
     element('p', config.basicCount === 'true'
-      ? 'We keep a daily page-load total, including when you say no. This counter saves no visitor ID, IP address, page URL or browsing history.'
-      : 'Optional analytics helps us understand use of our public website.', panel);
+      ? 'Basic page-load totals continue after No, without visitor IDs, IP addresses or browsing history.'
+      : 'Optional analytics helps improve this website.', panel);
     element('p', config.defaultAnalytics === 'australia'
-      ? 'Optional analytics starts automatically for visits recognised as Australian. Choose No to stop it. Elsewhere, it stays off unless you allow it. It measures visits, popular pages and enquiry actions, without receiving your enquiry details.'
-      : 'Allow optional analytics to measure visits, popular pages and enquiry actions. It does not receive your enquiry details. You can change your choice here at any time.', panel);
-    const policy = element('a', 'Read our privacy notice', panel);
+      ? 'Optional visit and enquiry-action analytics starts in Australia. No switches it off. Elsewhere, Allow starts it. Enquiry details are never collected.'
+      : 'Allow optional visit and enquiry-action analytics. Enquiry details are never collected. Change your choice any time.', panel);
+    const policy = element('a', 'Privacy notice', panel);
     policy.href = config.privacyUrl?.startsWith('/') && !config.privacyUrl.startsWith('//') ? config.privacyUrl : '/privacy';
     const status = element('p', '', panel);
     status.setAttribute('role', 'status');
     const buttons = element('div', '', panel);
     buttons.className = 'tame-privacy-actions';
-    const no = element('button', 'No optional analytics', buttons);
-    const yes = element('button', 'Allow optional analytics', buttons);
+    const no = element('button', 'No', buttons);
+    no.setAttribute('aria-label', 'No optional analytics');
+    const yes = element('button', 'Allow', buttons);
+    yes.setAttribute('aria-label', 'Allow optional analytics');
     const preferences = element('button', 'Privacy choices', document.body);
     preferences.className = 'tame-privacy-toggle';
     for (const button of [no, yes, preferences]) button.type = 'button';
